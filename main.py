@@ -1,0 +1,13 @@
+from kaggle.api.kaggle_api_extended import KaggleApi
+
+api = KaggleApi()
+api.authenticate()
+
+# download single file
+# Signature: dataset_download_file(dataset, file_name, path=None, force=False, quiet=True)
+all_files = api.competitions_data_list_files('g2net-detecting-continuous-gravitational-waves')
+with open('all_files.txt', 'w') as file:
+    for f in all_files:
+        file.write(str(f) + '\n')
+
+api.dataset_download_file('g2net-detecting-continuous-gravitational-waves', 'sample_submission.csv')
