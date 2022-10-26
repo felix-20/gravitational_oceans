@@ -1,6 +1,7 @@
 # custom
 # secret kaggle api key
 kaggle.json
+data/*
 
 
 # Byte-compiled / optimized / DLL files
