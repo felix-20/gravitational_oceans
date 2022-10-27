@@ -1,2 +1,6 @@
 kaggle
 pyfstat
+numpy
+scipy
+matplotlib
+h5py
