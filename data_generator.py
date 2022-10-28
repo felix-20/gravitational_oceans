@@ -1,104 +1,116 @@
 # https://www.kaggle.com/code/rodrigotenorio/generating-continuous-gravitational-wave-signals
 
-from operator import ge
 import os
-import sys
-from time import time
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import pyfstat
-
-from scipy import stats
 
 import h5py
+import pyfstat
+from scipy import stats
 
 PATH_TO_DATA_FOLDER = './data/'
 
-writer_kwargs_cw = {
-                'tstart': 1238166018,
-                'duration': 4 * 30 * 86400,  
-                'detectors': 'H1,L1',        
-                'sqrtSX': 1e-23,          
-                'Tsft': 1800,             
-                'SFTWindowType': 'tukey', 
-                'SFTWindowBeta': 0.01,
-               }
 
-writer_kwargs_no_cw = {
-    "label": "single_detector_gaussian_noise",
-    "outdir": "PyFstat_example_data",
-    "tstart": 1238166018,  # Starting time of the observation [GPS time]
-    "duration": 4 * 30 * 86400,  # Duration [seconds] 4 month
-    "detectors": "H1,L1",  # Detector to simulate, in this case LIGO Hanford
-    "F0": 100.0,  # Central frequency of the band to be generated [Hz]
-    "Band": 1.0,  # Frequency band-width around F0 [Hz]
-    "sqrtSX": 1e-23,  # Single-sided Amplitude Spectral Density of the noise
-    "Tsft": 1800,  # Fourier transform time duration
-    "SFTWindowType": "tukey",  # Window function to compute short Fourier transforms
-    "SFTWindowBeta": 0.01,  # Parameter associated to the window function
-}
+class GODataGenerator:
+    def __init__(self,
+        tstart: int = 1238166018,
+        duration: int = 4 * 30 * 86400,
+        detectors: str = 'H1,L1',
+        sqrtSX: float = 1e-23,
+        Tsft: int = 1800,
+        SFTWindowType: str = 'tukey',
+        SFTWindowBeta: float = 0.01,
+        Band: float = 1.0) -> None:
+        """
+        GODataGenerator can be used to generate gravitational waves data
 
-generator_cw = pyfstat.AllSkyInjectionParametersGenerator(
-    priors={
-        'tref': writer_kwargs_cw['tstart'],
-        'F0': {'uniform': {'low': 100.0, 'high': 100.1}},
-        'F1': lambda: 10**stats.uniform(-12, 4).rvs(),
-        'F2': 0,
-        'h0': lambda: writer_kwargs_cw['sqrtSX'] / stats.uniform(1, 10).rvs(),
-        **pyfstat.injection_parameters.isotropic_amplitude_priors,
-    },
-)
-generator_no_cw = pyfstat.AllSkyInjectionParametersGenerator(
-    priors={
-        'tref': writer_kwargs_no_cw['tstart'],
-        'F0': {'uniform': {'low': 100.0, 'high': 100.1}},
-        'F1': lambda: 10**stats.uniform(-12, 4).rvs(),
-        'F2': 0,
-        'h0': lambda: writer_kwargs_no_cw['sqrtSX'] / stats.uniform(1, 10).rvs(),
-        **pyfstat.injection_parameters.isotropic_amplitude_priors,
-    },
-)
+        Args:
+            tstart (int, optional): Starting time of the observation [GPS time]. Defaults to 1238166018.
+            duration (int, optional): Duration [seconds] 4 month. Defaults to 4*30*86400.
+            detectors (str, optional): Detector to simulate. Defaults to 'H1,L1 LIGO Hanford and LIGO Livingstone'.
+            sqrtSX (float, optional): Single-sided Amplitude Spectral Density of the noise. Defaults to 1e-23.
+            Tsft (int, optional): Fourier transform time duration. Defaults to 1800.
+            SFTWindowType (str, optional): Window function to compute short Fourier transforms. Defaults to 'tukey'.
+            SFTWindowBeta (float, optional): Parameter associated to the window function. Defaults to 0.01.
+            Band (float, optional): Frequency band-width around F0 [Hz]. Defaults to 1.0.
+        """
+        self.writer_kwargs_cw = {
+            'tstart': tstart,
+            'duration': duration,
+            'detectors': detectors,
+            'sqrtSX': sqrtSX,
+            'Tsft': Tsft,
+            'SFTWindowType': SFTWindowType,
+            'SFTWindowBeta': SFTWindowBeta,
+        }
+        self.writer_kwargs_no_cw = {
+            'tstart': tstart,
+            'duration': duration,
+            'detectors': detectors,
+            'Band': Band,
+            'sqrtSX': sqrtSX,
+            'Tsft': Tsft,
+            'SFTWindowType': SFTWindowType,
+            'SFTWindowBeta': SFTWindowBeta,
+        }
 
-def generate_signal(id: int, should_contain_cw: bool = False):
-    writer_kwargs = writer_kwargs_cw if should_contain_cw else writer_kwargs_no_cw
-    signal_parameters_generator = generator_cw if should_contain_cw else generator_no_cw
-    
-    # Draw signal parameters.
-    # Noise can be drawn by setting `params['h0'] = 0
-    params = signal_parameters_generator.draw()
-    writer_kwargs_cw['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/Signal_{id}'
-    writer_kwargs_cw['label'] = f'Signal_{id}'
-    
-    writer = pyfstat.Writer(**writer_kwargs_cw, **params)
-    writer.make_data()
-    
-    # Data can be read as a numpy array using PyFstat
-    frequency, timestamps, amplitudes = pyfstat.utils.get_sft_as_arrays(
-        writer.sftfilepath
-    )
+        self.generator_cw = pyfstat.AllSkyInjectionParametersGenerator(
+            priors={
+                'tref': self.writer_kwargs_cw['tstart'],
+                'F0': {'uniform': {'low': 100.0, 'high': 100.1}},
+                'F1': lambda: 10**stats.uniform(-12, 4).rvs(),
+                'F2': 0,
+                'h0': lambda: self.writer_kwargs_cw['sqrtSX'] / stats.uniform(1, 10).rvs(),
+                **pyfstat.injection_parameters.isotropic_amplitude_priors,
+            },
+        )
+        self.generator_no_cw = pyfstat.AllSkyInjectionParametersGenerator(
+            priors={
+                'tref': self.writer_kwargs_no_cw['tstart'],
+                'F0': {'uniform': {'low': 100.0, 'high': 100.1}},
+                'F1': lambda: 10**stats.uniform(-12, 4).rvs(),
+                'F2': 0,
+                'h0': lambda: self.writer_kwargs_no_cw['sqrtSX'] / stats.uniform(1, 10).rvs(),
+                **pyfstat.injection_parameters.isotropic_amplitude_priors,
+            },
+        )
 
-    path_to_hdf5_files = f'{PATH_TO_DATA_FOLDER}cw_hdf5/' if should_contain_cw else f'{PATH_TO_DATA_FOLDER}no_cw_hdf5/'
-    if not os.path.isdir(path_to_hdf5_files):
-        os.makedirs(path_to_hdf5_files)
+    def generate_signals(self, num_signals: int = 5) -> None:
+        """
+        Generates `num_signal` signals. Both with and without gravitational waves.
 
-    with h5py.File(f'{path_to_hdf5_files}signal{id}.hdf5', 'w') as hd5_file:
-        hd5_file.create_dataset('frequency_Hz', data=frequency, dtype='f')
-        l1_grp = hd5_file.create_group('L1')
-        l1_grp.create_dataset('SFTs', data=amplitudes['L1'], dtype='complex64')
-        l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')    
-        h1_grp = hd5_file.create_group('H1')
-        h1_grp.create_dataset('SFTs', data=amplitudes['H1'], dtype='complex64')
-        h1_grp.create_dataset('timestamps_GPS', data=timestamps['H1'], dtype='i')
+        Args:
+            num_signals (int, optional): number of signals that should be produced. Defaults to 5.
+        """
+        for i in range(num_signals):
+            self._generate_one_signal(i)
+            self._generate_one_signal(i, True)
 
+    def _generate_one_signal(self, id: int, should_contain_cw: bool = False) -> None:
+        writer_kwargs = self.writer_kwargs_cw if should_contain_cw else self.writer_kwargs_no_cw
+        signal_parameters_generator = self.generator_cw if should_contain_cw else self.generator_no_cw
 
-# Generate signals with parameters drawn from a specific population
-num_signals = 1
+        # Draw signal parameters.
+        # Noise can be drawn by setting `params['h0'] = 0
+        params = signal_parameters_generator.draw()
+        writer_kwargs['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/Signal_{id}'
+        writer_kwargs['label'] = f'Signal_{id}'
 
+        writer = pyfstat.Writer(**writer_kwargs, **params)
+        writer.make_data()
 
-snrs = np.zeros(num_signals)
+        # Data can be read as a numpy array using PyFstat
+        frequency, timestamps, amplitudes = pyfstat.utils.get_sft_as_arrays(
+            writer.sftfilepath
+        )
 
-for i in range(num_signals):
-    generate_signal(i)
-    generate_signal(i, True)
+        path_to_hdf5_files = f'{PATH_TO_DATA_FOLDER}cw_hdf5/' if should_contain_cw else f'{PATH_TO_DATA_FOLDER}no_cw_hdf5/'
+        if not os.path.isdir(path_to_hdf5_files):
+            os.makedirs(path_to_hdf5_files)
+
+        with h5py.File(f'{path_to_hdf5_files}signal{id}.hdf5', 'w') as hd5_file:
+            hd5_file.create_dataset('frequency_Hz', data=frequency, dtype='f')
+            l1_grp = hd5_file.create_group('L1')
+            l1_grp.create_dataset('SFTs', data=amplitudes['L1'], dtype='complex64')
+            l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')
+            h1_grp = hd5_file.create_group('H1')
+            h1_grp.create_dataset('SFTs', data=amplitudes['H1'], dtype='complex64')
+            h1_grp.create_dataset('timestamps_GPS', data=timestamps['H1'], dtype='i')
