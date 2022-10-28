@@ -106,11 +106,13 @@ class GODataGenerator:
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
 
-        with h5py.File(f'{path_to_hdf5_files}signal{id}.hdf5', 'w') as hd5_file:
-            hd5_file.create_dataset('frequency_Hz', data=frequency, dtype='f')
-            l1_grp = hd5_file.create_group('L1')
+        file_name = f'signal{id}'
+        with h5py.File(f'{path_to_hdf5_files}{file_name}.hdf5', 'w') as hd5_file:
+            file_grp = hd5_file.create_group(file_name)
+            file_grp.create_dataset('frequency_Hz', data=frequency, dtype='f')
+            l1_grp = file_grp.create_group('L1')
             l1_grp.create_dataset('SFTs', data=amplitudes['L1'], dtype='complex64')
             l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')
-            h1_grp = hd5_file.create_group('H1')
+            h1_grp = file_grp.create_group('H1')
             h1_grp.create_dataset('SFTs', data=amplitudes['H1'], dtype='complex64')
             h1_grp.create_dataset('timestamps_GPS', data=timestamps['H1'], dtype='i')
