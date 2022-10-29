@@ -48,4 +48,6 @@ class GODataset(Dataset):
         return len(self.frame)
 
     def __getitem__(self, idx) -> dict:
-        return self.frame[idx]
+        stft_data = self.frame[idx][0]
+        transformed_stft_data = np.swapaxes(stft_data, 1, 0, 0)
+        return (transformed_stft_data, self.frame[idx][1])
