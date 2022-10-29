@@ -3,8 +3,11 @@
 import os
 
 import h5py
+import numpy as np
 import pyfstat
 from scipy import stats
+
+from utils import print_blue, print_green, print_red
 
 PATH_TO_DATA_FOLDER = './data/'
 
@@ -15,7 +18,7 @@ class GODataGenerator:
         duration: int = 4 * 30 * 86400,
         detectors: str = 'H1,L1',
         sqrtSX: float = 1e-23,
-        Tsft: int = 1800,
+        Tsft: int = 1800 - 1,
         SFTWindowType: str = 'tukey',
         SFTWindowBeta: float = 0.01,
         Band: float = 1.0) -> None:
@@ -36,6 +39,7 @@ class GODataGenerator:
             'tstart': tstart,
             'duration': duration,
             'detectors': detectors,
+            'Band': Band,
             'sqrtSX': sqrtSX,
             'Tsft': Tsft,
             'SFTWindowType': SFTWindowType,
@@ -46,6 +50,7 @@ class GODataGenerator:
             'duration': duration,
             'detectors': detectors,
             'Band': Band,
+            'F0': 100.0,
             'sqrtSX': sqrtSX,
             'Tsft': Tsft,
             'SFTWindowType': SFTWindowType,
@@ -55,20 +60,12 @@ class GODataGenerator:
         self.generator_cw = pyfstat.AllSkyInjectionParametersGenerator(
             priors={
                 'tref': self.writer_kwargs_cw['tstart'],
-                'F0': {'uniform': {'low': 100.0, 'high': 100.1}},
-                'F1': lambda: 10**stats.uniform(-12, 4).rvs(),
-                'F2': 0,
-                'h0': lambda: self.writer_kwargs_cw['sqrtSX'] / stats.uniform(1, 10).rvs(),
-                **pyfstat.injection_parameters.isotropic_amplitude_priors,
-            },
-        )
-        self.generator_no_cw = pyfstat.AllSkyInjectionParametersGenerator(
-            priors={
-                'tref': self.writer_kwargs_no_cw['tstart'],
-                'F0': {'uniform': {'low': 100.0, 'high': 100.1}},
-                'F1': lambda: 10**stats.uniform(-12, 4).rvs(),
-                'F2': 0,
-                'h0': lambda: self.writer_kwargs_no_cw['sqrtSX'] / stats.uniform(1, 10).rvs(),
+                'F0': 100.0,
+                'F1': -1e-9,
+                'h0': 1e-22,
+                'cosi': 1,
+                'psi': 0.0,
+                'phi': 0.0,
                 **pyfstat.injection_parameters.isotropic_amplitude_priors,
             },
         )
@@ -81,17 +78,22 @@ class GODataGenerator:
             num_signals (int, optional): number of signals that should be produced. Defaults to 5.
         """
         for i in range(num_signals):
+            print_red('######### SIGNAL NOISE #########')
             self._generate_one_signal(i)
+            print_green('######### SIGNAL WAVE #########')
             self._generate_one_signal(i, True)
 
     def _generate_one_signal(self, id: int, should_contain_cw: bool = False) -> None:
-        writer_kwargs = self.writer_kwargs_cw if should_contain_cw else self.writer_kwargs_no_cw
-        signal_parameters_generator = self.generator_cw if should_contain_cw else self.generator_no_cw
+        params = {}
+        writer_kwargs = None
+        if should_contain_cw:
+            params = self.generator_cw.draw()
+            writer_kwargs = self.writer_kwargs_cw
+        else:
+            writer_kwargs = self.writer_kwargs_no_cw
 
-        # Draw signal parameters.
-        # Noise can be drawn by setting `params['h0'] = 0
-        params = signal_parameters_generator.draw()
-        writer_kwargs['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/Signal_{id}'
+        with_cw = 'with_cw' if should_contain_cw else 'without_cw'
+        writer_kwargs['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/{with_cw}/Signal_{id}'
         writer_kwargs['label'] = f'Signal_{id}'
 
         writer = pyfstat.Writer(**writer_kwargs, **params)
@@ -106,13 +108,25 @@ class GODataGenerator:
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
 
-        file_name = f'signal{id}'
-        with h5py.File(f'{path_to_hdf5_files}{file_name}.hdf5', 'w') as hd5_file:
-            file_grp = hd5_file.create_group(file_name)
-            file_grp.create_dataset('frequency_Hz', data=frequency, dtype='f')
-            l1_grp = file_grp.create_group('L1')
-            l1_grp.create_dataset('SFTs', data=amplitudes['L1'], dtype='complex64')
-            l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')
-            h1_grp = file_grp.create_group('H1')
-            h1_grp.create_dataset('SFTs', data=amplitudes['H1'], dtype='complex64')
-            h1_grp.create_dataset('timestamps_GPS', data=timestamps['H1'], dtype='i')
+        frequency_band_count = len(frequency) // 360
+        print_blue(f'{len(frequency)}, {frequency_band_count}')
+
+        amplitude_h1_bands = np.split(amplitudes['H1'], frequency_band_count)
+        amplitude_l1_bands = np.split(amplitudes['L1'], frequency_band_count)
+        frequency_bands = np.split(frequency, frequency_band_count)
+
+        for band_index in range(frequency_band_count):
+            file_name = f'signal{id}_{band_index}'
+            with h5py.File(f'{path_to_hdf5_files}{file_name}.hdf5', 'w') as hd5_file:
+                amplitudes_h1_band = amplitude_h1_bands[band_index]
+                amplitudes_l1_band = amplitude_l1_bands[band_index]
+                frequency_band = frequency_bands[band_index]
+
+                file_grp = hd5_file.create_group(file_name)
+                file_grp.create_dataset('frequency_Hz', data=frequency_band, dtype='f')
+                h1_grp = file_grp.create_group('H1')
+                h1_grp.create_dataset('SFTs', shape=amplitudes_h1_band.shape, data=amplitudes_h1_band, dtype='complex64')
+                h1_grp.create_dataset('timestamps_GPS', data=timestamps['H1'], dtype='i')
+                l1_grp = file_grp.create_group('L1')
+                l1_grp.create_dataset('SFTs', shape=amplitudes_l1_band.shape, data=amplitudes_l1_band, dtype='complex64')
+                l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')
