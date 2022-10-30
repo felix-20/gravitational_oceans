@@ -34,6 +34,10 @@ for epoch in range(2):  # loop over the dataset multiple times
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
 
+        # upload to gpu
+        inputs = inputs.to(device).float()
+        labels = labels.to(device)
+
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -44,9 +48,7 @@ for epoch in range(2):  # loop over the dataset multiple times
         optimizer.step()
 
         # print statistics
-        running_loss += loss.item()
-        if i % 2 == 0:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-            running_loss = 0.0
+        item_loss = loss.item()
+        print(f'[{epoch + 1}, {i + 1:5d}] loss: {item_loss}')
 
 print('Finished Training')
