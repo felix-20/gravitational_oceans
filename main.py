@@ -21,6 +21,4 @@ if not os.path.isdir('./data'):
 # os.chdir('./data')
 # os.system('kaggle competitions download g2net-detecting-continuous-gravitational-waves -f sample_submission.csv')
 
-#test
-
 GODataGenerator().generate_signals(5)

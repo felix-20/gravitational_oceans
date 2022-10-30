@@ -7,6 +7,9 @@ from torch.utils.data import DataLoader
 from dataset import GODataset
 
 print('finished imports')
+
+classes = ['no_cw', 'cw']
+
 print('setting up dataloader')
 
 train_dataset = GODataset('./data')
@@ -51,4 +54,27 @@ for epoch in range(2):  # loop over the dataset multiple times
         item_loss = loss.item()
         print(f'[{epoch + 1}, {i + 1:5d}] loss: {item_loss}')
 
-print('Finished Training')
+print('finished training')
+
+
+######################## TESTING ########################
+
+print('begin testing')
+
+test_dataset = GODataset('./data')
+test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True)
+
+
+dataiter = iter(test_loader)
+inputs, labels = next(dataiter)
+
+inputs = inputs.to(device).float()
+labels = labels.to(device)
+
+# print images
+print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
+
+output = efficientnet(inputs)
+_, predicted = torch.max(output, 1)
+
+print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}' for j in range(4)))

@@ -44,7 +44,6 @@ class GODataset(Dataset):
 
         result = np.transpose(np.array(result), axes=(2, 0, 1))
         assert result.shape == (3, 360, time_samples)
-        print_red(result[0][0][0])
         return result
 
     def __len__(self) -> int:
