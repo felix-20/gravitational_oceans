@@ -4,6 +4,8 @@ import h5py
 import numpy as np
 from torch.utils.data import Dataset
 
+from utils import print_red
+
 
 class GODataset(Dataset):
 
@@ -49,5 +51,6 @@ class GODataset(Dataset):
 
     def __getitem__(self, idx) -> dict:
         stft_data = self.frame[idx][0]
-        transformed_stft_data = np.swapaxes(stft_data, 1, 0, 0)
+        transformed_stft_data = np.transpose(stft_data, axes=(2, 0, 1))
+        print_red('in dataset.py->GODataset->__get_item__ after transform', transformed_stft_data.shape)
         return (transformed_stft_data, self.frame[idx][1])
