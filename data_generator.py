@@ -105,8 +105,6 @@ class GODataGenerator:
             writer.sftfilepath
         )
 
-        plot_real_imag_spectrograms(timestamps['H1'], frequency, amplitudes['H1'], with_cw)
-
         path_to_hdf5_files = f'{PATH_TO_DATA_FOLDER}cw_hdf5/' if should_contain_cw else f'{PATH_TO_DATA_FOLDER}no_cw_hdf5/'
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
@@ -133,3 +131,5 @@ class GODataGenerator:
                 l1_grp = file_grp.create_group('L1')
                 l1_grp.create_dataset('SFTs', shape=amplitudes_l1_band.shape, data=amplitudes_l1_band, dtype='complex64')
                 l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')
+
+                plot_real_imag_spectrograms(timestamps['H1'], frequency_band, amplitudes_h1_band, f'{file_name}')

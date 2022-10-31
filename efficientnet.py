@@ -5,6 +5,7 @@ import torchvision.models as models
 from torch.utils.data import DataLoader
 
 from dataset import GODataset
+from utils import print_green
 
 print('finished imports')
 
@@ -51,8 +52,8 @@ for epoch in range(2):  # loop over the dataset multiple times
         optimizer.step()
 
         # print statistics
-        item_loss = loss.item()
-        print(f'[{epoch + 1}, {i + 1:5d}] loss: {item_loss}')
+        #item_loss = loss.item()
+        #print(f'[{epoch + 1}, {i + 1:5d}] loss: {item_loss}')
 
 print('finished training')
 
@@ -75,6 +76,7 @@ labels = labels.to(device)
 print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
 
 output = efficientnet(inputs)
-_, predicted = torch.max(output, 1)
+tmp, predicted = torch.max(output, 1)
 
+print_green(tmp)
 print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}' for j in range(4)))

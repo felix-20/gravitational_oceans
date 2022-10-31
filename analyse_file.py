@@ -1,6 +1,7 @@
 import os
 
 import h5py
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
@@ -35,11 +36,11 @@ def analyse_keys():
 
 
 def visualize_data(path_to_file: str):
-    with h5py.File(path_to_file, 'r') as file:
-        amplitudes = file['/signal0_0/H1/SFTs']
-        frequency = file['/signal0_0/frequency_Hz']
-        print_blue(type(frequency))
-        timestamps = file['/signal0_0/H1/timestamps_GPS']
+    with h5py.File(path_to_file, 'r') as hd5_file:
+        base_key = list(hd5_file.keys())[0]
+        amplitudes = np.array(hd5_file[f'{base_key}/H1/SFTs'])
+        frequency = hd5_file[f'{base_key}/frequency_Hz']
+        timestamps = hd5_file[f'{base_key}/H1/timestamps_GPS']
         plot_real_imag_spectrograms(timestamps, frequency, amplitudes)
 
 def plot_real_imag_spectrograms(timestamps, frequency, fourier_data, name='tested_img'):
