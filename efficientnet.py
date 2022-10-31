@@ -3,21 +3,24 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
 from torch.utils.data import DataLoader
+from datetime import datetime
 
 from dataset import GODataset
-from utils import print_green
+from model_test import test
+from utils import print_green, print_red
 
 print('finished imports')
 
 classes = ['no_cw', 'cw']
+batch_size = 4
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print(f'Using {device} for inference')
 
 print('setting up dataloader')
 
 train_dataset = GODataset('./data')
-train_loader = DataLoader(train_dataset, batch_size=2)
-
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print(f'Using {device} for inference')
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 print('building efficientnet')
 
@@ -42,6 +45,8 @@ for epoch in range(2):  # loop over the dataset multiple times
         inputs = inputs.to(device).float()
         labels = labels.to(device)
 
+        print_red(labels)
+
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -57,26 +62,8 @@ for epoch in range(2):  # loop over the dataset multiple times
 
 print('finished training')
 
+torch.save(efficientnet.state_dict(), f'models/efficientnet_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
 
-######################## TESTING ########################
+############ TESTING ############
 
-print('begin testing')
-
-test_dataset = GODataset('./data')
-test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True)
-
-
-dataiter = iter(test_loader)
-inputs, labels = next(dataiter)
-
-inputs = inputs.to(device).float()
-labels = labels.to(device)
-
-# print images
-print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
-
-output = efficientnet(inputs)
-tmp, predicted = torch.max(output, 1)
-
-print_green(tmp)
-print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}' for j in range(4)))
+test(efficientnet, batch_size)

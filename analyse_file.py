@@ -75,6 +75,7 @@ def plot_real_imag_spectrograms(timestamps, frequency, fourier_data, name='teste
     if not os.path.isdir(path_to_images):
         os.makedirs(path_to_images)
     plt.savefig(f'{path_to_images}{name}')
-    return fig, axs
 
-visualize_data('./data/cw_hdf5/signal0_0.hdf5')
+    plt.close()
+
+#visualize_data('./data/cw_hdf5/signal0_0.hdf5')

@@ -2,9 +2,10 @@ import os
 
 import h5py
 import numpy as np
+from random import sample
 from torch.utils.data import Dataset
 
-from utils import print_red
+from utils import print_red, print_blue
 
 
 class GODataset(Dataset):
@@ -35,10 +36,13 @@ class GODataset(Dataset):
             return {'H1': processed_h1_stfts, 'L1': processed_l1_stfts}
 
     def _preprocess_stfts(self, stfts: np.array) -> np.array:
-        time_samples = 512
+        time_samples = 128
         result = []
-        for time_amplitudes in stfts:
-            sampled_time_amplitudes = time_amplitudes[np.random.choice(len(time_amplitudes), size=time_samples, replace=False)]
+        _, timestep_count = stfts.shape
+        subset = sample(range(timestep_count), time_samples)
+        subset.sort()
+        for time_amplitudes in stfts:    
+            sampled_time_amplitudes = time_amplitudes[subset]
             transformed_sampled_time_amplitudes = np.column_stack((sampled_time_amplitudes.real, sampled_time_amplitudes.imag, np.zeros(time_samples)))
             result += [transformed_sampled_time_amplitudes]
 

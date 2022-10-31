@@ -1,7 +1,7 @@
 # https://www.kaggle.com/code/rodrigotenorio/generating-continuous-gravitational-wave-signals
 
 import os
-
+import shutil
 import h5py
 import numpy as np
 import pyfstat
@@ -15,6 +15,7 @@ PATH_TO_DATA_FOLDER = './data/'
 
 class GODataGenerator:
     def __init__(self,
+        visualize: bool = False,
         tstart: int = 1238166018,
         duration: int = 4 * 30 * 86400,
         detectors: str = 'H1,L1',
@@ -27,6 +28,7 @@ class GODataGenerator:
         GODataGenerator can be used to generate gravitational waves data
 
         Args:
+            visualize (bool, optional): Generate a visualization of all generated data-files.
             tstart (int, optional): Starting time of the observation [GPS time]. Defaults to 1238166018.
             duration (int, optional): Duration [seconds] 4 month. Defaults to 4*30*86400.
             detectors (str, optional): Detector to simulate. Defaults to 'H1,L1 LIGO Hanford and LIGO Livingstone'.
@@ -36,6 +38,8 @@ class GODataGenerator:
             SFTWindowBeta (float, optional): Parameter associated to the window function. Defaults to 0.01.
             Band (float, optional): Frequency band-width around F0 [Hz]. Defaults to 1.0.
         """
+        self.visualize = visualize
+
         self.writer_kwargs_cw = {
             'tstart': tstart,
             'duration': duration,
@@ -93,24 +97,25 @@ class GODataGenerator:
         else:
             writer_kwargs = self.writer_kwargs_no_cw
 
-        with_cw = 'with_cw' if should_contain_cw else 'without_cw'
-        writer_kwargs['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/{with_cw}/Signal_{id}'
-        writer_kwargs['label'] = f'Signal_{id}'
-
+        # define the folder to write to
+        writer_kwargs['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/'
+        writer_kwargs['label'] = f'tmp_signal'
         writer = pyfstat.Writer(**writer_kwargs, **params)
         writer.make_data()
 
-        # Data can be read as a numpy array using PyFstat
+        # extract data from written files
         frequency, timestamps, amplitudes = pyfstat.utils.get_sft_as_arrays(
             writer.sftfilepath
         )
+
+        # delete temporary files
+        shutil.rmtree(f'{PATH_TO_DATA_FOLDER}generated/')
 
         path_to_hdf5_files = f'{PATH_TO_DATA_FOLDER}cw_hdf5/' if should_contain_cw else f'{PATH_TO_DATA_FOLDER}no_cw_hdf5/'
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
 
         frequency_band_count = len(frequency) // 360
-        # print_blue(f'{len(frequency)}, {frequency_band_count}')
 
         amplitude_h1_bands = np.split(amplitudes['H1'], frequency_band_count)
         amplitude_l1_bands = np.split(amplitudes['L1'], frequency_band_count)
@@ -132,4 +137,7 @@ class GODataGenerator:
                 l1_grp.create_dataset('SFTs', shape=amplitudes_l1_band.shape, data=amplitudes_l1_band, dtype='complex64')
                 l1_grp.create_dataset('timestamps_GPS', data=timestamps['L1'], dtype='i')
 
-                plot_real_imag_spectrograms(timestamps['H1'], frequency_band, amplitudes_h1_band, f'{file_name}')
+            if self.visualize:
+                with_cw = 'cw' if should_contain_cw else ''
+                plot_real_imag_spectrograms(timestamps['H1'], frequency_band, amplitudes_h1_band, f'{file_name}_{with_cw}_h1')
+                plot_real_imag_spectrograms(timestamps['L1'], frequency_band, amplitudes_l1_band, f'{file_name}_{with_cw}_l1')
