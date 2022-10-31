@@ -7,6 +7,7 @@ import numpy as np
 import pyfstat
 from scipy import stats
 
+from analyse_file import plot_real_imag_spectrograms
 from utils import print_blue, print_green, print_red
 
 PATH_TO_DATA_FOLDER = './data/'
@@ -104,12 +105,14 @@ class GODataGenerator:
             writer.sftfilepath
         )
 
+        plot_real_imag_spectrograms(timestamps['H1'], frequency, amplitudes['H1'], with_cw)
+
         path_to_hdf5_files = f'{PATH_TO_DATA_FOLDER}cw_hdf5/' if should_contain_cw else f'{PATH_TO_DATA_FOLDER}no_cw_hdf5/'
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
 
         frequency_band_count = len(frequency) // 360
-        print_blue(f'{len(frequency)}, {frequency_band_count}')
+        # print_blue(f'{len(frequency)}, {frequency_band_count}')
 
         amplitude_h1_bands = np.split(amplitudes['H1'], frequency_band_count)
         amplitude_l1_bands = np.split(amplitudes['L1'], frequency_band_count)
