@@ -7,3 +7,4 @@ h5py
 pre-commit
 torch # needed for efficientnet
 torchvision # needed for efficientnet
+efficientnet-pytorch

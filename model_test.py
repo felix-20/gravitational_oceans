@@ -35,7 +35,7 @@ def test(model, batch_size):
     print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}' for j in range(batch_size)))
 
 if __name__ == "__main__":
-    path = './models/efficientnet_2022-10-31_18:19.pt'
+    path = './models/efficientnet_2022-10-31_19:50.pt'
     efficientnet = models.efficientnet_b0()
     efficientnet.load_state_dict(torch.load(path))
     efficientnet.eval()
