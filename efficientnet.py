@@ -9,7 +9,7 @@ from efficientnet_pytorch import EfficientNet
 
 from dataset import GODataset
 from model_test import test
-from utils import print_green, print_red
+from utils import print_green, print_red, print_blue
 
 print('finished imports')
 
@@ -26,7 +26,7 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 print('building efficientnet')
 
-efficientnet = EfficientNet.from_name('efficientnet-b0')
+efficientnet = models.resnet50()#EfficientNet.from_name('efficientnet-b0')
 efficientnet.eval().to(device)
 
 print('defining loss and optimizer')

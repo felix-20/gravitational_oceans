@@ -54,7 +54,4 @@ class GODataset(Dataset):
         return len(self.frame)
 
     def __getitem__(self, idx) -> dict:
-        if self.frame[idx][1] == 1:
-            return (np.full((3,360,128), 1), 1)
-        else:
-            return (np.full((3,360,128), 0), 0)
+        return self.frame[idx]

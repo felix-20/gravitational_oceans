@@ -67,7 +67,7 @@ class GODataGenerator:
                 'tref': self.writer_kwargs_cw['tstart'],
                 'F0': 100.0,
                 'F1': -1e-9,
-                'h0': 1e-22,
+                'h0': sqrtSX / 20.0,
                 'cosi': 1,
                 'psi': 0.0,
                 'phi': 0.0,
@@ -117,17 +117,13 @@ class GODataGenerator:
 
         frequency_band_count = len(frequency) // 360
 
-        amplitude_h1_bands = np.split(amplitudes['H1'], frequency_band_count)
-        amplitude_l1_bands = np.split(amplitudes['L1'], frequency_band_count)
-        frequency_bands = np.split(frequency, frequency_band_count)
-
         for band_index in range(frequency_band_count):
+            amplitudes_h1_band = amplitudes['H1'][band_index::frequency_band_count]
+            amplitudes_l1_band = amplitudes['L1'][band_index::frequency_band_count]
+            frequency_band = frequency[band_index::frequency_band_count]
+
             file_name = f'signal{id}_{band_index}'
             with h5py.File(f'{path_to_hdf5_files}{file_name}.hdf5', 'w') as hd5_file:
-                amplitudes_h1_band = amplitude_h1_bands[band_index]
-                amplitudes_l1_band = amplitude_l1_bands[band_index]
-                frequency_band = frequency_bands[band_index]
-
                 file_grp = hd5_file.create_group(file_name)
                 file_grp.create_dataset('frequency_Hz', data=frequency_band, dtype='f')
                 h1_grp = file_grp.create_group('H1')
