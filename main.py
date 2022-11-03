@@ -2,9 +2,8 @@ import os
 
 from kaggle.api.kaggle_api_extended import KaggleApi
 
-from utils import PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, print_green
-
 from data_generator import GODataGenerator
+from utils import PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, print_green
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
@@ -18,7 +17,7 @@ api.authenticate()
 
 # download single file
 # Signature: dataset_download_file(dataset, file_name, path=None, force=False, quiet=True)
-# 
+#
 # api.dataset_download_file('g2net-detecting-continuous-gravitational-waves', 'train/01dba9731.hdf5', path=None, force=False, quiet=True)
 # all_files = api.competitions_data_list_files('g2net-detecting-continuous-gravitational-waves')
 # with open('./data/all_files.txt', 'w') as file:

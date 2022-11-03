@@ -2,12 +2,12 @@
 
 import os
 import shutil
+
 import h5py
 import pyfstat
 
 from analyse_file import plot_real_imag_spectrograms
-from utils import print_blue, print_green, print_red, PATH_TO_TRAIN_FOLDER
-
+from utils import PATH_TO_TRAIN_FOLDER, print_blue, print_green, print_red
 
 
 class GODataGenerator:

@@ -1,8 +1,9 @@
-from cProfile import label
-from torch.utils.data import DataLoader
-from PIL import Image
-import numpy as np
 import os
+from cProfile import label
+
+import numpy as np
+from PIL import Image
+from torch.utils.data import DataLoader
 
 from dataset import GODataset
 from utils import PATH_TO_TRAIN_FOLDER

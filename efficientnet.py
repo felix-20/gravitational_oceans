@@ -1,15 +1,16 @@
+from datetime import datetime
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
-from torch.utils.data import DataLoader
-from datetime import datetime
-import numpy as np
 from efficientnet_pytorch import EfficientNet
+from torch.utils.data import DataLoader
 
 from dataset import GODataset
 from model_test import test
-from utils import print_green, print_red, print_blue
+from utils import print_blue, print_green, print_red
 
 print('finished imports')
 

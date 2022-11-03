@@ -1,11 +1,11 @@
 import os
 
 import h5py
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import colors
 
-from utils import print_blue, PATH_TO_TRAIN_FOLDER
+from utils import PATH_TO_TRAIN_FOLDER, print_blue
 
 
 def allkeys(obj):

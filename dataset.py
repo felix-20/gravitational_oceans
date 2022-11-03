@@ -1,11 +1,11 @@
 import os
+from random import sample
 
 import h5py
 import numpy as np
-from random import sample
 from torch.utils.data import Dataset
 
-from utils import print_red, print_blue, PATH_TO_TRAIN_FOLDER
+from utils import PATH_TO_TRAIN_FOLDER, print_blue, print_red
 
 
 class GODataset(Dataset):
@@ -41,7 +41,7 @@ class GODataset(Dataset):
         _, timestep_count = stfts.shape
         subset = sample(range(timestep_count), time_samples)
         subset.sort()
-        for time_amplitudes in stfts:    
+        for time_amplitudes in stfts:
             sampled_time_amplitudes = time_amplitudes[subset]
             transformed_sampled_time_amplitudes = np.column_stack((sampled_time_amplitudes.real, sampled_time_amplitudes.imag, np.zeros(time_samples)))
             result += [transformed_sampled_time_amplitudes]
