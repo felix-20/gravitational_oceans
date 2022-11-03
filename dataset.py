@@ -5,22 +5,22 @@ import numpy as np
 from random import sample
 from torch.utils.data import Dataset
 
-from utils import print_red, print_blue
+from utils import print_red, print_blue, PATH_TO_TRAIN_FOLDER
 
 
 class GODataset(Dataset):
 
-    def __init__(self, data_folder: str, transform=None):
+    def __init__(self, data_folder: str = PATH_TO_TRAIN_FOLDER, transform=None):
         self.transform = transform
         self.frame = []
 
         for file in os.listdir(f'{data_folder}/no_cw_hdf5'):
-            file_data = self._load_data_from_hdf5('./data/no_cw_hdf5/' + file)
+            file_data = self._load_data_from_hdf5(f'{data_folder}/no_cw_hdf5/' + file)
             self.frame += [(file_data['H1'], 0)]
             self.frame += [(file_data['L1'], 0)]
 
         for file in os.listdir(f'{data_folder}/cw_hdf5'):
-            file_data = self._load_data_from_hdf5('./data/cw_hdf5/' + file)
+            file_data = self._load_data_from_hdf5(f'{data_folder}/cw_hdf5/' + file)
             self.frame += [(file_data['H1'], 1)]
             self.frame += [(file_data['L1'], 1)]
 

@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 import torchvision.models as models
 
 from dataset import GODataset
-from utils import print_green
+from utils import print_green, PATH_TO_TEST_FOLDER
 
 classes = ['no_cw', 'cw']
 
@@ -15,7 +15,7 @@ def test(model, batch_size):
     model.to(device)
 
     print('setting up dataloader')
-    test_dataset = GODataset('./data')
+    test_dataset = GODataset(PATH_TO_TEST_FOLDER)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     print('getting ground truth data')

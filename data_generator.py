@@ -3,14 +3,11 @@
 import os
 import shutil
 import h5py
-import numpy as np
 import pyfstat
-from scipy import stats
 
 from analyse_file import plot_real_imag_spectrograms
-from utils import print_blue, print_green, print_red
+from utils import print_blue, print_green, print_red, PATH_TO_TRAIN_FOLDER
 
-PATH_TO_DATA_FOLDER = './data/'
 
 
 class GODataGenerator:
@@ -98,7 +95,7 @@ class GODataGenerator:
             writer_kwargs = self.writer_kwargs_no_cw
 
         # define the folder to write to
-        writer_kwargs['outdir'] = f'{PATH_TO_DATA_FOLDER}generated/'
+        writer_kwargs['outdir'] = f'{PATH_TO_TRAIN_FOLDER}/generated/'
         writer_kwargs['label'] = f'tmp_signal'
         writer = pyfstat.Writer(**writer_kwargs, **params)
         writer.make_data()
@@ -109,9 +106,9 @@ class GODataGenerator:
         )
 
         # delete temporary files
-        shutil.rmtree(f'{PATH_TO_DATA_FOLDER}generated/')
+        shutil.rmtree(f'{PATH_TO_TRAIN_FOLDER}/generated/')
 
-        path_to_hdf5_files = f'{PATH_TO_DATA_FOLDER}cw_hdf5/' if should_contain_cw else f'{PATH_TO_DATA_FOLDER}no_cw_hdf5/'
+        path_to_hdf5_files = f'{PATH_TO_TRAIN_FOLDER}/cw_hdf5/' if should_contain_cw else f'{PATH_TO_TRAIN_FOLDER}/no_cw_hdf5/'
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
 
@@ -137,3 +134,6 @@ class GODataGenerator:
                 with_cw = 'cw' if should_contain_cw else ''
                 plot_real_imag_spectrograms(timestamps['H1'], frequency_band, amplitudes_h1_band, f'{file_name}_{with_cw}_h1')
                 plot_real_imag_spectrograms(timestamps['L1'], frequency_band, amplitudes_l1_band, f'{file_name}_{with_cw}_l1')
+
+if __name__ == '__main__':
+    GODataGenerator().generate_signals(15)

@@ -5,14 +5,15 @@ import numpy as np
 import os
 
 from dataset import GODataset
+from utils import PATH_TO_TRAIN_FOLDER
 
-dataset = GODataset('./data')
+dataset = GODataset(PATH_TO_TRAIN_FOLDER)
 loader = DataLoader(dataset, batch_size=1)
 
-no_cw_path = './data/images/no_cw/'
-cw_path = './data/images/cw/'
+no_cw_path = f'{PATH_TO_TRAIN_FOLDER}/images/no_cw/'
+cw_path = f'{PATH_TO_TRAIN_FOLDER}/images/cw/'
 
-if not os.path.isdir('./data/images'):
+if not os.path.isdir(f'{PATH_TO_TRAIN_FOLDER}/images'):
     os.makedirs(no_cw_path)
     os.makedirs(cw_path)
 

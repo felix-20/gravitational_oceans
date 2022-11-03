@@ -21,7 +21,7 @@ print(f'Using {device} for inference')
 
 print('setting up dataloader')
 
-train_dataset = GODataset('./data')
+train_dataset = GODataset()
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 print('building efficientnet')

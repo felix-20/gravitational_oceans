@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
-from utils import print_blue
+from utils import print_blue, PATH_TO_TRAIN_FOLDER
 
 
 def allkeys(obj):
@@ -19,10 +19,7 @@ def allkeys(obj):
                 keys = keys + (value.name,)
     return keys
 
-file_path = 'data/cw_hdf5/signal0_0.hdf5'
-#file_path = './example/00054c878.hdf5'
-
-def analyse_keys():
+def analyse_keys(file_path: str):
     with h5py.File(file_path, 'r') as file:
         all_keys = allkeys(file)
         print('\n'.join(all_keys))
@@ -71,11 +68,12 @@ def plot_real_imag_spectrograms(timestamps, frequency, fourier_data, name='teste
 
     fig.colorbar(c, ax=axs[1], orientation='horizontal', label='Fourier Amplitude')
 
-    path_to_images = './data/visualize/'
+    path_to_images = f'{PATH_TO_TRAIN_FOLDER}/visualize/'
     if not os.path.isdir(path_to_images):
         os.makedirs(path_to_images)
     plt.savefig(f'{path_to_images}{name}')
 
     plt.close()
 
-#visualize_data('./data/cw_hdf5/signal0_0.hdf5')
+if __name__ == '__main__':
+    visualize_data(os.path.join(PATH_TO_TRAIN_FOLDER, 'cw_hdf5', 'signal0_0.hdf5'))

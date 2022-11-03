@@ -1,8 +1,8 @@
 # custom
-# secret kaggle api key
-kaggle.json
 data/*
 models/*
+train/*
+test/*
 
 
 # Byte-compiled / optimized / DLL files
