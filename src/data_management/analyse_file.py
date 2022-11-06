@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 
-from utils import PATH_TO_TRAIN_FOLDER, print_blue
+from src.helper.utils import PATH_TO_TRAIN_FOLDER, PATH_TO_TEST_FOLDER
 
 
 def allkeys(obj):

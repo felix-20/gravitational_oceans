@@ -12,9 +12,9 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-PATH_TO_TEST_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test')
-PATH_TO_TRAIN_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train')
-PATH_TO_MODEL_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models')
+PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
+PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
+PATH_TO_MODEL_FOLDER = os.path.join(os.getcwd(), 'models_saved')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):

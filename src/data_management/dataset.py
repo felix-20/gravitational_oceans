@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 from torch.utils.data import Dataset
 
-from utils import PATH_TO_TRAIN_FOLDER, print_blue, print_red
+from src.helper.utils import PATH_TO_TRAIN_FOLDER, print_blue, print_red
 
 
 class GODataset(Dataset):

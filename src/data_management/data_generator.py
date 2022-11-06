@@ -6,8 +6,8 @@ import shutil
 import h5py
 import pyfstat
 
-from analyse_file import plot_real_imag_spectrograms
-from utils import PATH_TO_TRAIN_FOLDER, print_blue, print_green, print_red
+from src.data_management.analyse_file import plot_real_imag_spectrograms
+from src.helper.utils import PATH_TO_TRAIN_FOLDER, print_blue, print_green, print_red
 
 
 class GODataGenerator:

@@ -5,8 +5,8 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import DataLoader
 
-from dataset import GODataset
-from utils import PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER
+from src.data_management.dataset import GODataset
+from src.helper.utils import PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER
 
 dataset = GODataset(PATH_TO_TEST_FOLDER)
 loader = DataLoader(dataset, batch_size=1)
