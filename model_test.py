@@ -3,7 +3,7 @@ import torchvision.models as models
 from torch.utils.data import DataLoader
 
 from dataset import GODataset
-from utils import PATH_TO_TEST_FOLDER, print_green
+from utils import PATH_TO_TEST_FOLDER, print_green, PATH_TO_MODEL_FOLDER
 
 classes = ['no_cw', 'cw']
 
@@ -35,8 +35,8 @@ def test(model, batch_size):
     print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}' for j in range(batch_size)))
 
 if __name__ == '__main__':
-    path = './models/efficientnet_2022-10-31_19:50.pt'
-    efficientnet = models.efficientnet_b0()
+    path = f'{PATH_TO_MODEL_FOLDER}/efficientnet_2022-11-05_11:47.pt'
+    efficientnet = models.resnet50()
     efficientnet.load_state_dict(torch.load(path))
     efficientnet.eval()
 

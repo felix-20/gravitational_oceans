@@ -6,15 +6,17 @@ from PIL import Image
 from torch.utils.data import DataLoader
 
 from dataset import GODataset
-from utils import PATH_TO_TRAIN_FOLDER
+from utils import PATH_TO_TRAIN_FOLDER, PATH_TO_TEST_FOLDER
 
-dataset = GODataset(PATH_TO_TRAIN_FOLDER)
+dataset = GODataset(PATH_TO_TEST_FOLDER)
 loader = DataLoader(dataset, batch_size=1)
 
-no_cw_path = f'{PATH_TO_TRAIN_FOLDER}/images/no_cw/'
-cw_path = f'{PATH_TO_TRAIN_FOLDER}/images/cw/'
+# no_cw_path = f'{PATH_TO_TRAIN_FOLDER}/images/no_cw/'
+# cw_path = f'{PATH_TO_TRAIN_FOLDER}/images/cw/'
+no_cw_path = f'{PATH_TO_TEST_FOLDER}/images/no_cw/'
+cw_path = f'{PATH_TO_TEST_FOLDER}/images/cw/'
 
-if not os.path.isdir(f'{PATH_TO_TRAIN_FOLDER}/images'):
+if not os.path.isdir(f'{PATH_TO_TEST_FOLDER}/images'):
     os.makedirs(no_cw_path)
     os.makedirs(cw_path)
 
