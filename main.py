@@ -5,9 +5,6 @@ from kaggle.api.kaggle_api_extended import KaggleApi
 from data_generator import GODataGenerator
 from utils import PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, print_green
 
-
-
-
 api = KaggleApi()
 api.authenticate()
 

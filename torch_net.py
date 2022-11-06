@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from dataset import GODataset
 from model_test import test
-from utils import print_blue, print_green, print_red, PATH_TO_MODEL_FOLDER
+from utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red
 
 print('finished imports')
 

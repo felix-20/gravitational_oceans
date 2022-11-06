@@ -1,15 +1,16 @@
 import os
-import queue
+
 import h5py
 
-from utils import PATH_TO_TEST_FOLDER, print_green, print_yellow, print_blue, print_red
+from priority_queue import GOPriorityQueue
+from utils import PATH_TO_TEST_FOLDER, print_blue, print_green, print_red, print_yellow
 
 PATH_TO_TMP_FOLDER = './tmp'
 if not os.path.isdir(PATH_TO_TMP_FOLDER):
     os.makedirs(PATH_TO_TMP_FOLDER)
 
-time_queue = queue.PriorityQueue()
-frequency_queue = queue.PriorityQueue()
+time_queue = GOPriorityQueue()
+frequency_queue = GOPriorityQueue()
 
 def process_file(path_to_file):
     with h5py.File(path_to_file, 'r') as hd5_file:
@@ -27,18 +28,18 @@ def process_file(path_to_file):
         if time_tuple in time_queue.queue:
             print_yellow(f'time tuple {time_tuple} already exists')
         else:
-            time_queue.put(time_tuple)
+            time_queue.insert(time_tuple)
             print_green(f'put time tuple {time_tuple}')
-        
+
         if frequency_tuple in frequency_queue.queue:
             print_yellow(f'frequency tuple {frequency_tuple} already exists')
         else:
-            frequency_queue.put(frequency_tuple)
+            frequency_queue.insert(frequency_tuple)
             print_green(f'put frequency tuple {frequency_tuple}')
 
-
-os.system(f'kaggle competitions download g2net-detecting-continuous-gravitational-waves -p {PATH_TO_TEST_FOLDER} -f train_labels.csv')
-assert os.path.isfile(f'{PATH_TO_TEST_FOLDER}/train_labels.csv'), 'Could not download train labels'
+if not os.path.isfile(f'{PATH_TO_TEST_FOLDER}/train_labels.csv'):
+    os.system(f'kaggle competitions download g2net-detecting-continuous-gravitational-waves -p {PATH_TO_TEST_FOLDER} -f train_labels.csv')
+    assert os.path.isfile(f'{PATH_TO_TEST_FOLDER}/train_labels.csv'), 'Could not download train labels'
 
 
 with open(f'{PATH_TO_TEST_FOLDER}/train_labels.csv', 'r') as file:
@@ -52,7 +53,8 @@ with open(f'{PATH_TO_TEST_FOLDER}/train_labels.csv', 'r') as file:
                 print_blue(time_queue.get())
             
             for _ in range(frequency_queue.qsize()):
-                print_blue(frequency_queue.get())
+            print_blue(time_queue)
+            print_yellow(frequency_queue)
             exit(0)
 
         file_id, ground_truth = line.strip().split(',')

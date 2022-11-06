@@ -6,7 +6,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 
 from dataset import GODataset
-from utils import PATH_TO_TRAIN_FOLDER, PATH_TO_TEST_FOLDER
+from utils import PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER
 
 dataset = GODataset(PATH_TO_TEST_FOLDER)
 loader = DataLoader(dataset, batch_size=1)
