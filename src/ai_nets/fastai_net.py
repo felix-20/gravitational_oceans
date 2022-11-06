@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastai.vision.all import *
 
-from utils import PATH_TO_TRAIN_FOLDER
+from src.helper.utils import PATH_TO_TRAIN_FOLDER
 
 DATASET_PATH = Path(f'{PATH_TO_TRAIN_FOLDER}/images/')
 

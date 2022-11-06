@@ -8,9 +8,9 @@ import torchvision.models as models
 from efficientnet_pytorch import EfficientNet
 from torch.utils.data import DataLoader
 
-from dataset import GODataset
-from model_test import test
-from utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red
+from src.data_management.dataset import GODataset
+from src.ai_nets.model_test import test
+from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red
 
 print('finished imports')
 
@@ -54,7 +54,7 @@ for epoch in range(2):  # loop over the dataset multiple times
         outputs = efficientnet(inputs)
         # print_red(str(labels) + ' -> ' + str(outputs.cpu().detach().numpy()[:, :2]))
         loss = criterion(outputs, labels)
-        print_blue(i, loss)
+        print_blue(f'{i} {loss}')
         loss.backward()
         optimizer.step()
 

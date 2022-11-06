@@ -2,8 +2,8 @@ import os
 
 import h5py
 
-from priority_queue import GOPriorityQueue
-from utils import PATH_TO_TEST_FOLDER, print_blue, print_green, print_red, print_yellow
+from src.helper.priority_queue import GOPriorityQueue
+from src.helper.utils import PATH_TO_TEST_FOLDER, print_blue, print_green, print_red, print_yellow
 
 PATH_TO_TMP_FOLDER = './tmp'
 if not os.path.isdir(PATH_TO_TMP_FOLDER):
@@ -49,10 +49,6 @@ with open(f'{PATH_TO_TEST_FOLDER}/train_labels.csv', 'r') as file:
 
         i += 1
         if i == 5:
-            for _ in range(time_queue.qsize()):
-                print_blue(time_queue.get())
-            
-            for _ in range(frequency_queue.qsize()):
             print_blue(time_queue)
             print_yellow(frequency_queue)
             exit(0)
