@@ -6,7 +6,7 @@ surfing the gravitational waves
 ## setup
 
 we provide a `requirements.txt` file for you to install the required dependencies.
-It is highly recommended to install them in a virtual environment, we recomment [Python Virtual Venv]().
+It is highly recommended to install them in a virtual environment, i.e. [Python Virtual Environment](https://docs.python.org/3/tutorial/venv.html).
 Once all dependencies are installed you can start surfing.
 
 The source code for our networks and other approaches can be found in the `./src` directory.
