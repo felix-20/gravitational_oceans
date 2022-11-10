@@ -15,6 +15,7 @@ from tqdm import tqdm
 from colorama import Fore
 
 from src.data_management.dataset import GODataset
+from src.helper.utils import print_blue, print_green, print_red, print_yellow
 
 epochs = 5
 num_classes = 2
@@ -29,7 +30,7 @@ number_of_sequences = 10000
 dataset_sequences = []
 dataset_labels = []
 
-device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using {device} for training')
 
 seq_dataset = GODataset()# data_utils.TensorDataset(dataset_data, dataset_labels)
@@ -44,7 +45,7 @@ class CRNN(nn.Module):
 
     def __init__(self):
         super(CRNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=(3, 3))
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=(3, 3))
         self.norm1 = nn.InstanceNorm2d(32)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=(3, 3), stride=2)
         self.norm2 = nn.InstanceNorm2d(32)
@@ -70,7 +71,11 @@ class CRNN(nn.Module):
         out = self.conv4(out)
         out = self.norm4(out)
         out = F.leaky_relu(out)
+        print_green(out.shape)
         out = out.permute(0, 3, 2, 1)
+        print_blue(out.shape)
+        print_blue(type(out))
+        print_yellow(self.gru_input_size)
         out = out.reshape(batch_size, -1, self.gru_input_size)
         out, _ = self.gru(out)
         out = torch.stack([F.log_softmax(self.fc(out[i]), dim=-1) for i in range(out.shape[0])])
@@ -90,9 +95,10 @@ for _ in range(epochs):
                                  position=0, leave=True,
                                  file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.RESET)):
         batch_size = x_train.shape[0]  # x_train.shape == torch.Size([64, 28, 140])
-        x_train = x_train.view(x_train.shape[0], 1, x_train.shape[1], x_train.shape[2])
+        print(x_train.shape)
+        x_train = x_train.view(x_train.shape)
         optimizer.zero_grad()
-        y_pred = model(x_train.to(device))
+        y_pred = model(x_train.to(device).float())
         y_pred = y_pred.permute(1, 0, 2)  # y_pred.shape == torch.Size([64, 32, 11])
         input_lengths = torch.IntTensor(batch_size).fill_(cnn_output_width)
         target_lengths = torch.IntTensor([len(t) for t in y_train])
