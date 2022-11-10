@@ -14,18 +14,18 @@ from torchvision import datasets, transforms
 from tqdm import tqdm
 from colorama import Fore
 
-from src.data_management.dataset import GODataset
+from src.data_management.crnn_dataset import GOCRNNDataset
 from src.helper.utils import print_blue, print_green, print_red, print_yellow
 
 epochs = 5
-num_classes = 2
+num_classes = 3
 blank_label = 2
-image_height = 360
+image_height = 128
 gru_hidden_size = 128
 gru_num_layers = 2
-cnn_output_height = 4
-cnn_output_width = 32
-digits_per_sequence = 100
+cnn_output_height = 87
+cnn_output_width = 29
+digits_per_sequence = 1
 number_of_sequences = 10000
 dataset_sequences = []
 dataset_labels = []
@@ -33,7 +33,7 @@ dataset_labels = []
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using {device} for training')
 
-seq_dataset = GODataset()# data_utils.TensorDataset(dataset_data, dataset_labels)
+seq_dataset = GOCRNNDataset()# data_utils.TensorDataset(dataset_data, dataset_labels)
 train_set, val_set = torch.utils.data.random_split(seq_dataset,
                                                    [int(len(seq_dataset) * 0.8), int(len(seq_dataset) * 0.2)])
 
@@ -71,11 +71,7 @@ class CRNN(nn.Module):
         out = self.conv4(out)
         out = self.norm4(out)
         out = F.leaky_relu(out)
-        print_green(out.shape)
         out = out.permute(0, 3, 2, 1)
-        print_blue(out.shape)
-        print_blue(type(out))
-        print_yellow(self.gru_input_size)
         out = out.reshape(batch_size, -1, self.gru_input_size)
         out, _ = self.gru(out)
         out = torch.stack([F.log_softmax(self.fc(out[i]), dim=-1) for i in range(out.shape[0])])
@@ -95,13 +91,13 @@ for _ in range(epochs):
                                  position=0, leave=True,
                                  file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.RESET)):
         batch_size = x_train.shape[0]  # x_train.shape == torch.Size([64, 28, 140])
-        print(x_train.shape)
         x_train = x_train.view(x_train.shape)
         optimizer.zero_grad()
         y_pred = model(x_train.to(device).float())
         y_pred = y_pred.permute(1, 0, 2)  # y_pred.shape == torch.Size([64, 32, 11])
         input_lengths = torch.IntTensor(batch_size).fill_(cnn_output_width)
         target_lengths = torch.IntTensor([len(t) for t in y_train])
+        
         loss = criterion(y_pred, y_train, input_lengths, target_lengths)
         loss.backward()
         optimizer.step()
@@ -112,6 +108,7 @@ for _ in range(epochs):
             if len(prediction) == len(y_train[i]) and torch.all(prediction.eq(y_train[i])):
                 train_correct += 1
             train_total += 1
+                
     print('TRAINING. Correct: ', train_correct, '/', train_total, '=', train_correct / train_total)
 
     # ============================================ VALIDATION ==========================================================
@@ -121,8 +118,8 @@ for _ in range(epochs):
                              position=0, leave=True,
                              file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.BLUE, Fore.RESET)):
         batch_size = x_val.shape[0]
-        x_val = x_val.view(x_val.shape[0], 1, x_val.shape[1], x_val.shape[2])
-        y_pred = model(x_val.to(device))
+        x_val = x_val.view(x_val.shape)
+        y_pred = model(x_val.to(device).float())
         y_pred = y_pred.permute(1, 0, 2)
         input_lengths = torch.IntTensor(batch_size).fill_(cnn_output_width)
         target_lengths = torch.IntTensor([len(t) for t in y_val])
@@ -141,7 +138,7 @@ number_of_test_imgs = 10
 test_loader = torch.utils.data.DataLoader(val_set, batch_size=number_of_test_imgs, shuffle=True)
 test_preds = []
 (x_test, y_test) = next(iter(test_loader))
-y_pred = model(x_test.view(x_test.shape[0], 1, x_test.shape[1], x_test.shape[2]).to(device))
+y_pred = model(x_test.view(x_test.shape).to(device).float())
 y_pred = y_pred.permute(1, 0, 2)
 _, max_index = torch.max(y_pred, dim=2)
 for i in range(x_test.shape[0]):
