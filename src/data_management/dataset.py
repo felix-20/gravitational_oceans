@@ -16,13 +16,13 @@ class GODataset(Dataset):
 
         for file in os.listdir(f'{data_folder}/no_cw_hdf5'):
             file_data = self._load_data_from_hdf5(f'{data_folder}/no_cw_hdf5/' + file)
-            self.frame += [(file_data['H1'], 0)]
-            self.frame += [(file_data['L1'], 0)]
+            for data in file_data:
+                self.frame += [(data, 0)]
 
         for file in os.listdir(f'{data_folder}/cw_hdf5'):
             file_data = self._load_data_from_hdf5(f'{data_folder}/cw_hdf5/' + file)
-            self.frame += [(file_data['H1'], 1)]
-            self.frame += [(file_data['L1'], 1)]
+            for data in file_data:
+                self.frame += [(data, 1)]
 
     def _load_data_from_hdf5(self, file_path: str) -> dict:
         with h5py.File(file_path, 'r') as hd5_file:
@@ -33,9 +33,9 @@ class GODataset(Dataset):
             processed_h1_stfts = self._preprocess_stfts(h1_stfts)
             processed_l1_stfts = self._preprocess_stfts(l1_stfts)
 
-            return {'H1': processed_h1_stfts, 'L1': processed_l1_stfts}
+            return processed_h1_stfts + processed_l1_stfts
 
-    def _preprocess_stfts(self, stfts: np.array) -> np.array:
+    def _preprocess_stfts(self, stfts: np.array) -> list:
         time_samples = 128
         result = []
         _, timestep_count = stfts.shape
@@ -48,7 +48,7 @@ class GODataset(Dataset):
 
         result = np.transpose(np.array(result), axes=(2, 0, 1))
         assert result.shape == (3, 360, time_samples)
-        return result
+        return [result]
 
     def __len__(self) -> int:
         return len(self.frame)

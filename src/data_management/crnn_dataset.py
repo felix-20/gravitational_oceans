@@ -1,17 +1,74 @@
 import torch
 import numpy as np
+from random import shuffle
 
-from src.helper.utils import PATH_TO_TRAIN_FOLDER
+from src.helper.utils import PATH_TO_TEST_FOLDER
 from src.data_management.dataset import GODataset
 
 class GOCRNNDataset(GODataset):
 
-    def __init__(self, data_folder: str = PATH_TO_TRAIN_FOLDER, transform=None):
+    def __init__(self, data_folder: str = PATH_TO_TEST_FOLDER, sequence_length: int = 5, transform=None):
         super().__init__(data_folder, transform)
 
-        self.frame = [item for item in self.frame for _ in range(30)]
+        self.sequence_length = sequence_length
+
+        no_cw_data = []
+        cw_data = []
+        for element in self.frame:
+            match element[1]:
+                case 0:
+                    no_cw_data += [element]
+                case 1:
+                    cw_data += [element]
+
+        category_size = min(len(no_cw_data), len(cw_data))
+        no_cw_data = no_cw_data[:category_size]
+        cw_data = cw_data[:category_size]
+
+        self.frame = no_cw_data + cw_data
+        shuffle(self.frame)
+
+        #self.frame = [item for item in self.frame for _ in range(30)]
+
+    def _preprocess_stfts(self, stfts: np.array) -> np.array:
+        time_samples = 360
+        result = []
+
+        total_frequencies, total_timesteps = stfts.shape
+
+        time_frequency_amplitude_data = np.transpose(stfts, (1, 0))
+        time_batch_count = total_timesteps // time_samples
+
+        for time_batch_index in range(time_batch_count):
+            time_frequency_batch = time_frequency_amplitude_data[time_batch_index * time_samples : (time_batch_index + 1) * time_samples]
+
+            stft_image = []
+            for frequency_amplitudes in time_frequency_batch:
+                transformed = np.column_stack((frequency_amplitudes.real, frequency_amplitudes.imag, np.zeros(total_frequencies)))
+                stft_image += [transformed]
+
+            stft_image = np.transpose(np.array(stft_image), axes=(1, 0, 2))
+            assert stft_image.shape == (360, 360, 3)
+            result += [stft_image]
+
+        return result
+
+    def __len__(self) -> int:
+        return len(self.frame)
 
     def __getitem__(self, idx) -> dict:
-        return (np.transpose(self.frame[idx][0], (0, 2, 1)), torch.tensor([self.frame[idx][1]], dtype=torch.int32))
+        sequence = self.frame[idx * self.sequence_length : (idx + 1) * self.sequence_length]
+        data = []
+        labels = []
 
+        for stft_image, label in sequence:
+            data += list(stft_image)
+            labels += [label]
 
+        return (np.transpose(np.array(data), (2, 1, 0)), torch.tensor(labels, dtype=torch.int32))
+        # return (np.transpose(self.frame[idx][0], (0, 2, 1)), torch.tensor([self.frame[idx][1]], dtype=torch.int32))
+
+if __name__ == '__main__':
+    item = GOCRNNDataset().__getitem__(0)
+    print(item[0].shape)
+    print(item)
