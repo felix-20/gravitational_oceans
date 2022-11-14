@@ -1,6 +1,7 @@
 import os
-import numpy as np
+
 import h5py
+import numpy as np
 
 from src.helper.priority_queue import GOPriorityQueue
 from src.helper.utils import PATH_TO_TEST_FOLDER, print_blue, print_green, print_red, print_yellow
@@ -30,7 +31,7 @@ def append_row(m, i):
         result = np.r_[m[:i], [np.zeros(1)], m[i:]]
     #print_red(result)
     return result
-    
+
 
 def process_file(path_to_file: str, label: bool, is_first: bool) -> None:
     global matrix
@@ -63,7 +64,7 @@ def process_file(path_to_file: str, label: bool, is_first: bool) -> None:
             tmp_m = append_row(tmp_m, y)
             matrix = np.transpose(tmp_m)
             print_blue(matrix)
-        
+
         matrix[x,y] = int(label) + 1
         print(x,y)
         print(matrix)

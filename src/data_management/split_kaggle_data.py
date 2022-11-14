@@ -16,6 +16,6 @@ with open(f'{PATH_TO_TEST_FOLDER}/train_labels.csv', 'r') as file:
         path_to_folder = PATH_TO_TEST_FOLDER
         path_to_folder += '/no_cw_hdf5' if ground_truth == '0' else '/cw_hdf5'
         dest_file_path = os.path.join(path_to_folder, f'{file_id}.hdf5')
-        
+
         source_file_path = os.path.join(path_to_raw_kaggle_data, f'{file_id}.hdf5')
         move(source_file_path, dest_file_path)

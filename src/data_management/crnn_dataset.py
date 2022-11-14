@@ -1,11 +1,13 @@
-import torch
-import numpy as np
+from os import listdir, makedirs, path
 from random import shuffle
-from os import path, listdir, makedirs
+
+import numpy as np
+import torch
 from tqdm import tqdm
 
-from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
 from src.data_management.dataset import GODataset
+from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
+
 
 class GOCRNNDataset(GODataset):
 
@@ -16,42 +18,32 @@ class GOCRNNDataset(GODataset):
         self.name_label_mapping = []
 
         if path.isdir(path.join(save_folder, 'no_cw_npy')) and path.isdir(path.join(save_folder, 'cw_npy')):
+            # we have already converted the hdf5 files into numpy array files
             print('Loading from npy files')
-            # TODO: change load to load list of tuples aka new matchinh
-            self._load()
+            self._load_mapping()
         else:
             print('Loading from hdf5 files')
-            name_seed = 0
             no_cw_folder = path.join(data_folder, 'no_cw_hdf5')
             cw_folder = path.join(data_folder, 'cw_hdf5')
+            name_seed = 0
             name_seed = self._load_folder(no_cw_folder, 0, name_seed)
             name_seed = self._load_folder(cw_folder, 1, name_seed)
 
-            # TODO: make data same size
-            no_cw_data = []
-            cw_data = []
-            for element in self.frame:
-                match element[1]:
-                    case 0:
-                        no_cw_data += [element]
-                    case 1:
-                        cw_data += [element]
+            # make cw and no_cw data same size
+            all_no_cw_data = [tup for tup in self.name_label_mapping if tup[1] == 0]
+            all_cw_data = [tup for tup in self.name_label_mapping if tup[1] == 1]
+            category_size = min(len(all_no_cw_data), len(all_cw_data))
+            no_cw_data = all_no_cw_data[:category_size]
+            cw_data = all_cw_data[:category_size]
 
-            category_size = min(len(no_cw_data), len(cw_data))
-            no_cw_data = no_cw_data[:category_size]
-            cw_data = cw_data[:category_size]
+            self.name_label_mapping = np.array(no_cw_data + cw_data)
+            self._save_mapping()
 
-            self.frame = no_cw_data + cw_data
-            self._save()
-        
-        shuffle(self.frame)
-
+        np.random.shuffle(self.name_label_mapping)
         print_green('Dataset ready!')
 
-        #self.frame = [item for item in self.frame for _ in range(30)]
-
     def _load_folder(self, data_folder: str, label: int, name_seed: int) -> int:
-        for file in listdir(data_folder):
+        for file in tqdm(listdir(data_folder), f'Loading data for label {label}'):
             file_data = self._load_data_from_hdf5(path.join(data_folder, file))
             labeled_data = [(data, label) for data in file_data]
             self.name_label_mapping += [(name, label) for name in self._save(labeled_data, name_seed)]
@@ -82,19 +74,19 @@ class GOCRNNDataset(GODataset):
         return result
 
     def __len__(self) -> int:
-        return len(self.frame) // self.sequence_length
+        return len(self.name_label_mapping) // self.sequence_length
 
     def __getitem__(self, idx) -> dict:
-        sequence = self.frame[idx * self.sequence_length : (idx + 1) * self.sequence_length]
+        sequence_mapping = self.name_label_mapping[idx * self.sequence_length : (idx + 1) * self.sequence_length]
+        sequence = self._load(sequence_mapping)
+
         data = []
         labels = []
-
         for stft_image, label in sequence:
             data += list(stft_image)
             labels += [label]
 
         return (np.transpose(np.array(data), (2, 1, 0)), torch.tensor(labels, dtype=torch.int32))
-        # return (np.transpose(self.frame[idx][0], (0, 2, 1)), torch.tensor([self.frame[idx][1]], dtype=torch.int32))
 
     def _save(self, list_of_tuples: list, seed: int) -> list:
         no_cw_path = path.join(self.save_folder, 'no_cw_npy')
@@ -112,20 +104,24 @@ class GOCRNNDataset(GODataset):
             list_of_names += [index]
             index += 1
 
-        return list_of_names        
-    
-    def _load(self) -> None:
+        return list_of_names
+
+    def _save_mapping(self) -> None:
+        np.save(path.join(self.save_folder, 'current_mapping'), np.array(self.name_label_mapping))
+
+    def _load(self, list_of_index: list) -> list:
         no_cw_path = path.join(self.save_folder, 'no_cw_npy')
         cw_path = path.join(self.save_folder, 'cw_npy')
 
-        self.frame = []
+        result = []
+        for file_id, label in list_of_index:
+            result += [(np.load(path.join(no_cw_path if label == 0 else cw_path, f'{file_id}.npy')), label)]
 
-        for npy_file in tqdm(listdir(no_cw_path), 'loading no cw files'):
-            self.frame += [(np.load(path.join(no_cw_path, npy_file)), 0)]
+        return result
 
-        for npy_file in tqdm(listdir(cw_path), 'loading cw files'):
-            self.frame += [(np.load(path.join(cw_path, npy_file)), 1)]
-        
+    def _load_mapping(self) -> None:
+        self.name_label_mapping = np.load(path.join(self.save_folder, 'current_mapping.npy'))
+
 
 if __name__ == '__main__':
     item = GOCRNNDataset().__getitem__(0)

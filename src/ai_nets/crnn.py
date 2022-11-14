@@ -1,7 +1,8 @@
 # https://github.com/dredwardhyde/crnn-ctc-loss-pytorch
 import sys
-from itertools import groupby
 from datetime import datetime
+from itertools import groupby
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,12 +11,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 import torchvision.transforms.functional as TF
+from colorama import Fore
 from torchvision import datasets, transforms
 from tqdm import tqdm
-from colorama import Fore
 
 from src.data_management.crnn_dataset import GOCRNNDataset
-from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_MODEL_FOLDER
+from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 epochs = 1
 num_classes = 3
@@ -89,7 +90,7 @@ for _ in range(epochs):
     train_total = 0
     for x_train, y_train in tqdm(train_loader,
                                  position=0, leave=True,
-                                 file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.RESET)):
+                                 file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.GREEN, Fore.RESET)):
         batch_size = x_train.shape[0]  # x_train.shape == torch.Size([64, 28, 140])
         x_train = x_train.view(x_train.shape)
         optimizer.zero_grad()
@@ -97,7 +98,7 @@ for _ in range(epochs):
         y_pred = y_pred.permute(1, 0, 2)  # y_pred.shape == torch.Size([64, 32, 11])
         input_lengths = torch.IntTensor(batch_size).fill_(cnn_output_width)
         target_lengths = torch.IntTensor([len(t) for t in y_train])
-        
+
         loss = criterion(y_pred, y_train, input_lengths, target_lengths)
         loss.backward()
         optimizer.step()
@@ -108,7 +109,7 @@ for _ in range(epochs):
             if len(prediction) == len(y_train[i]) and torch.all(prediction.eq(y_train[i])):
                 train_correct += 1
             train_total += 1
-                
+
     print('TRAINING. Correct: ', train_correct, '/', train_total, '=', train_correct / train_total)
 
     # ============================================ VALIDATION ==========================================================
@@ -116,7 +117,7 @@ for _ in range(epochs):
     val_total = 0
     for x_val, y_val in tqdm(val_loader,
                              position=0, leave=True,
-                             file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.BLUE, Fore.RESET)):
+                             file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.BLUE, Fore.RESET)):
         batch_size = x_val.shape[0]
         x_val = x_val.view(x_val.shape)
         y_pred = model(x_val.to(device).float())
