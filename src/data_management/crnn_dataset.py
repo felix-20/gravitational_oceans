@@ -13,14 +13,21 @@ class GOCRNNDataset(GODataset):
         print_green('Crunching your data, hang on tight!')
         self.sequence_length = sequence_length
         self.save_folder = save_folder
+        self.name_label_mapping = []
 
         if path.isdir(path.join(save_folder, 'no_cw_npy')) and path.isdir(path.join(save_folder, 'cw_npy')):
             print('Loading from npy files')
+            # TODO: change load to load list of tuples aka new matchinh
             self._load()
         else:
             print('Loading from hdf5 files')
-            super().__init__(data_folder, transform)
+            name_seed = 0
+            no_cw_folder = path.join(data_folder, 'no_cw_hdf5')
+            cw_folder = path.join(data_folder, 'cw_hdf5')
+            name_seed = self._load_folder(no_cw_folder, 0, name_seed)
+            name_seed = self._load_folder(cw_folder, 1, name_seed)
 
+            # TODO: make data same size
             no_cw_data = []
             cw_data = []
             for element in self.frame:
@@ -42,6 +49,14 @@ class GOCRNNDataset(GODataset):
         print_green('Dataset ready!')
 
         #self.frame = [item for item in self.frame for _ in range(30)]
+
+    def _load_folder(self, data_folder: str, label: int, name_seed: int) -> int:
+        for file in listdir(data_folder):
+            file_data = self._load_data_from_hdf5(path.join(data_folder, file))
+            labeled_data = [(data, label) for data in file_data]
+            self.name_label_mapping += [(name, label) for name in self._save(labeled_data, name_seed)]
+            name_seed += len(labeled_data)
+        return name_seed
 
     def _preprocess_stfts(self, stfts: np.array) -> np.array:
         time_samples = 360
@@ -81,19 +96,23 @@ class GOCRNNDataset(GODataset):
         return (np.transpose(np.array(data), (2, 1, 0)), torch.tensor(labels, dtype=torch.int32))
         # return (np.transpose(self.frame[idx][0], (0, 2, 1)), torch.tensor([self.frame[idx][1]], dtype=torch.int32))
 
-    def _save(self) -> None:
+    def _save(self, list_of_tuples: list, seed: int) -> list:
         no_cw_path = path.join(self.save_folder, 'no_cw_npy')
         cw_path = path.join(self.save_folder, 'cw_npy')
         makedirs(no_cw_path, exist_ok = True)
         makedirs(cw_path, exist_ok = True)
 
-        index = 0
-        for stft_image, label in self.frame:
+        list_of_names = []
+        index = seed
+        for stft_image, label in list_of_tuples:
             if label == 0:
                 np.save(path.join(no_cw_path, str(index)), stft_image)
             elif label == 1:
                 np.save(path.join(cw_path, str(index)), stft_image)
+            list_of_names += [index]
             index += 1
+
+        return list_of_names        
     
     def _load(self) -> None:
         no_cw_path = path.join(self.save_folder, 'no_cw_npy')
