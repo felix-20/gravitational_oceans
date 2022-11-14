@@ -1,7 +1,7 @@
 # https://github.com/dredwardhyde/crnn-ctc-loss-pytorch
 import sys
 from itertools import groupby
-
+from datetime import datetime
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,9 +15,9 @@ from tqdm import tqdm
 from colorama import Fore
 
 from src.data_management.crnn_dataset import GOCRNNDataset
-from src.helper.utils import print_blue, print_green, print_red, print_yellow
+from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_MODEL_FOLDER
 
-epochs = 5
+epochs = 1
 num_classes = 3
 blank_label = 2
 image_height = 360
@@ -146,10 +146,13 @@ for i in range(x_test.shape[0]):
     prediction = torch.IntTensor([c for c, _ in groupby(raw_prediction) if c != blank_label])
     test_preds.append(prediction)
 
-for j in range(len(x_test)):
-    mpl.rcParams["font.size"] = 8
-    plt.imshow(x_test[j], cmap='gray')
-    mpl.rcParams["font.size"] = 18
-    plt.gcf().text(x=0.1, y=0.1, s="Actual: " + str(y_test[j].numpy()))
-    plt.gcf().text(x=0.1, y=0.2, s="Predicted: " + str(test_preds[j].numpy()))
-    plt.show()
+torch.save(model, f'{PATH_TO_MODEL_FOLDER}/crnn_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
+
+# for j in range(len(x_test)):
+#     mpl.rcParams["font.size"] = 8
+#     plt.imshow(x_test[j], cmap='gray')
+#     mpl.rcParams["font.size"] = 18
+#     plt.gcf().text(x=0.1, y=0.1, s="Actual: " + str(y_test[j].numpy()))
+#     plt.gcf().text(x=0.1, y=0.2, s="Predicted: " + str(test_preds[j].numpy()))
+#     plt.show()
+#     plt.savefig('')
