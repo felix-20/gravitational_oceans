@@ -20,13 +20,13 @@ from src.helper.utils import print_blue, print_green, print_red, print_yellow
 epochs = 5
 num_classes = 3
 blank_label = 2
-image_height = 128
+image_height = 360
 gru_hidden_size = 128
 gru_num_layers = 2
 cnn_output_height = 87
 cnn_output_width = 29
-digits_per_sequence = 1
-number_of_sequences = 10000
+digits_per_sequence = 5
+number_of_sequences = 2566
 dataset_sequences = []
 dataset_labels = []
 
@@ -35,9 +35,9 @@ print(f'Using {device} for training')
 
 seq_dataset = GOCRNNDataset()# data_utils.TensorDataset(dataset_data, dataset_labels)
 train_set, val_set = torch.utils.data.random_split(seq_dataset,
-                                                   [int(len(seq_dataset) * 0.8), int(len(seq_dataset) * 0.2)])
+                                                   [round(len(seq_dataset) * 0.8), round(len(seq_dataset) * 0.2)])
 
-train_loader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_set, batch_size=16, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
 # ================================================= MODEL ==============================================================
