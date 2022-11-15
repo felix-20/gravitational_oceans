@@ -18,15 +18,15 @@ from tqdm import tqdm
 from src.data_management.crnn_dataset import GOCRNNDataset
 from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
-epochs = 1
+epochs = 5
 num_classes = 3
 blank_label = 2
 image_height = 360
 gru_hidden_size = 128
 gru_num_layers = 2
-cnn_output_height = 20
-cnn_output_width = 32
-digits_per_sequence = 5
+cnn_output_height = 21
+cnn_output_width = 43
+digits_per_sequence = 2
 number_of_sequences = 2566
 dataset_sequences = []
 dataset_labels = []
@@ -34,11 +34,11 @@ dataset_labels = []
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using {device} for training')
 
-seq_dataset = GOCRNNDataset()# data_utils.TensorDataset(dataset_data, dataset_labels)
+seq_dataset = GOCRNNDataset(sequence_length=digits_per_sequence)# data_utils.TensorDataset(dataset_data, dataset_labels)
 train_set, val_set = torch.utils.data.random_split(seq_dataset,
                                                    [round(len(seq_dataset) * 0.8), round(len(seq_dataset) * 0.2)])
 
-train_loader = torch.utils.data.DataLoader(train_set, batch_size=16, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_set, batch_size=32, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
 # ================================================= MODEL ==============================================================
@@ -54,14 +54,17 @@ class CRNN(nn.Module):
         self.norm3 = nn.InstanceNorm2d(64)
         self.conv4 = nn.Conv2d(64, 64, kernel_size=(3, 3), stride=2)
         self.norm4 = nn.InstanceNorm2d(64)
-        self.conv4 = nn.Conv2d(64, 128, kernel_size=(3, 3))
-        self.norm4 = nn.InstanceNorm2d(64)
+        self.conv5 = nn.Conv2d(64, 128, kernel_size=(3, 3), stride=2)
+        self.norm5 = nn.InstanceNorm2d(128)
+        self.conv6 = nn.Conv2d(128, 128, kernel_size=(3, 3), stride=2)
+        self.norm6 = nn.InstanceNorm2d(128)
         self.gru_input_size = cnn_output_height * 128
         self.gru = nn.GRU(self.gru_input_size, gru_hidden_size, gru_num_layers, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(gru_hidden_size * 2, num_classes)
 
     def forward(self, x):
         batch_size = x.shape[0]
+        
         out = self.conv1(x)
         out = self.norm1(out)
         out = F.leaky_relu(out)
@@ -74,13 +77,14 @@ class CRNN(nn.Module):
         out = self.conv4(out)
         out = self.norm4(out)
         out = F.leaky_relu(out)
-
         out = self.conv5(out)
         out = self.norm5(out)
         out = F.leaky_relu(out)
+        out = self.conv6(out)
+        out = self.norm6(out)
+        out = F.leaky_relu(out)
 
         out = out.permute(0, 3, 2, 1)
-        print_red(out.shape)
         out = out.reshape(batch_size, -1, self.gru_input_size)
         out, _ = self.gru(out)
         out = torch.stack([F.log_softmax(self.fc(out[i]), dim=-1) for i in range(out.shape[0])])
@@ -118,9 +122,9 @@ for _ in range(epochs):
                 train_correct += 1
             train_total += 1
         
-        if torch.cuda.is_available():
-            print_red('clearing gpu cache')
-            torch.cuda.empty_cache()
+        #if torch.cuda.is_available():
+        #    print_red('clearing gpu cache')
+        #    torch.cuda.empty_cache()
                 
     print('TRAINING. Correct: ', train_correct, '/', train_total, '=', train_correct / train_total)
 
