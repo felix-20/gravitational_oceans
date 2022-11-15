@@ -1,5 +1,4 @@
 from os import listdir, makedirs, path
-from random import shuffle
 
 import numpy as np
 import torch
@@ -76,7 +75,7 @@ class GOCRNNDataset(GODataset):
             labels += [label]
 
         return (np.transpose(np.array(data), (2, 1, 0)), torch.tensor(labels, dtype=torch.int32))
-    
+
     def _create_new_mapping(self):
         print(f'Cannot find your mapping file in {self.path_to_mapping_file}')
         print(f'Creating new mapping file')
@@ -85,7 +84,7 @@ class GOCRNNDataset(GODataset):
         self.name_label_mapping = np.array(all_cw_npy + all_no_cw_npy)
         self._leverage_data()
         np.random.shuffle(self.name_label_mapping)
-    
+
     def _leverage_data(self) -> None:
         # make cw and no_cw data same size
         all_no_cw_data = [tup for tup in self.name_label_mapping if tup[1] == 0]
@@ -124,7 +123,7 @@ class GOCRNNDataset(GODataset):
             result += [(np.load(path.join(no_cw_path if label == 0 else cw_path, f'{file_id}.npy')), label)]
 
         return result
-    
+
     def _load_folder(self, data_folder: str, label: int, name_seed: int) -> int:
         for file in tqdm(listdir(data_folder), f'Loading data for label {label}'):
             file_data = self._load_data_from_hdf5(path.join(data_folder, file))

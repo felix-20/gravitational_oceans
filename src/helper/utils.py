@@ -24,16 +24,24 @@ if not os.path.isdir(PATH_TO_TEST_FOLDER):
 if not os.path.isdir(PATH_TO_MODEL_FOLDER):
     os.makedirs(PATH_TO_MODEL_FOLDER)
 
-def print_red(text: str):
-    print(f'{bcolors.FAIL}{text}{bcolors.ENDC}')
+def print_red(*text):
+    print(f'{bcolors.FAIL}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
 
 
-def print_blue(text: str):
-    print(f'{bcolors.OKCYAN}{text}{bcolors.ENDC}')
+def print_blue(*text):
+    print(f'{bcolors.OKCYAN}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
 
 
-def print_green(text: str):
-    print(f'{bcolors.OKGREEN}{text}{bcolors.ENDC}')
+def print_green(*text):
+    print(f'{bcolors.OKGREEN}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
 
-def print_yellow(text: str):
-    print(f'{bcolors.WARNING}{text}{bcolors.ENDC}')
+
+def print_yellow(*text):
+    print(f'{bcolors.WARNING}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
+
+
+if __name__ == '__main__':
+    print_red('This', 'text', 'is red', 1, 23)
+    print_blue('This', 'text', 'is blue', 1, 23)
+    print_green('This', 'text', 'is green', 1, 23)
+    print_yellow('This', 'text', 'is yellow', 1, 23)
