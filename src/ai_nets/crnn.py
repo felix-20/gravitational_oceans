@@ -24,8 +24,8 @@ blank_label = 2
 image_height = 360
 gru_hidden_size = 128
 gru_num_layers = 2
-cnn_output_height = 87
-cnn_output_width = 29
+cnn_output_height = 20
+cnn_output_width = 32
 digits_per_sequence = 5
 number_of_sequences = 2566
 dataset_sequences = []
@@ -54,7 +54,9 @@ class CRNN(nn.Module):
         self.norm3 = nn.InstanceNorm2d(64)
         self.conv4 = nn.Conv2d(64, 64, kernel_size=(3, 3), stride=2)
         self.norm4 = nn.InstanceNorm2d(64)
-        self.gru_input_size = cnn_output_height * 64
+        self.conv4 = nn.Conv2d(64, 128, kernel_size=(3, 3))
+        self.norm4 = nn.InstanceNorm2d(64)
+        self.gru_input_size = cnn_output_height * 128
         self.gru = nn.GRU(self.gru_input_size, gru_hidden_size, gru_num_layers, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(gru_hidden_size * 2, num_classes)
 
@@ -72,7 +74,13 @@ class CRNN(nn.Module):
         out = self.conv4(out)
         out = self.norm4(out)
         out = F.leaky_relu(out)
+
+        out = self.conv5(out)
+        out = self.norm5(out)
+        out = F.leaky_relu(out)
+
         out = out.permute(0, 3, 2, 1)
+        print_red(out.shape)
         out = out.reshape(batch_size, -1, self.gru_input_size)
         out, _ = self.gru(out)
         out = torch.stack([F.log_softmax(self.fc(out[i]), dim=-1) for i in range(out.shape[0])])
@@ -109,7 +117,11 @@ for _ in range(epochs):
             if len(prediction) == len(y_train[i]) and torch.all(prediction.eq(y_train[i])):
                 train_correct += 1
             train_total += 1
-
+        
+        if torch.cuda.is_available():
+            print_red('clearing gpu cache')
+            torch.cuda.empty_cache()
+                
     print('TRAINING. Correct: ', train_correct, '/', train_total, '=', train_correct / train_total)
 
     # ============================================ VALIDATION ==========================================================
