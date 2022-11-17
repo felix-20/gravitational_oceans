@@ -10,3 +10,4 @@ torchvision==0.13.1 # needed for efficientnet
 efficientnet-pytorch
 fastai
 colorama
+tensorboard

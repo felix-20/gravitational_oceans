@@ -32,7 +32,7 @@ digits_per_sequence = 2
 number_of_sequences = 2566
 dataset_sequences = []
 dataset_labels = []
-writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs'))
+writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', str(datetime.now())))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using {device} for training')
@@ -103,6 +103,8 @@ for num_epoch in range(epochs):
     # ============================================ TRAINING ============================================================
     train_correct = 0
     train_total = 0
+
+    time = 0
     for x_train, y_train in tqdm(train_loader,
                                  position=0, leave=True,
                                  file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.GREEN, Fore.RESET)):
@@ -118,24 +120,28 @@ for num_epoch in range(epochs):
         loss.backward()
         optimizer.step()
         _, max_index = torch.max(y_pred, dim=2)  # max_index.shape == torch.Size([32, 64])
-        # my_i = 0
+
         for i in range(batch_size):
             raw_prediction = list(max_index[:, i].detach().cpu().numpy())  # len(raw_prediction) == 32
             prediction = torch.IntTensor([c for c, _ in groupby(raw_prediction) if c != blank_label])
-            # writer.add_scalar('test', 15, my_i)
-            # my_i += 1
-            print_red('-------------------')
-            for p in prediction:
-                print('.', end='')
-                writer.add_scalar('predicition', i * (num_epoch + 1), p)
-            print()
+
+            writer.add_scalar(f'predicition_length/epoch_{num_epoch}', len(prediction), time)
+            
+            partial_correct = 0
+            partial_total = min(len(prediction), len(y_train[i]))
+            if partial_total != 0:
+                for j  in range(partial_total):
+                    if prediction[j] == y_train[i][j]:
+                        partial_correct += 1
+                
+                writer.add_scalar(f'partial_correct/epoch_{num_epoch}', partial_correct / partial_total, time)
+
             if len(prediction) == len(y_train[i]) and torch.all(prediction.eq(y_train[i])):
                 train_correct += 1
             train_total += 1
+
+            time += 1
         
-        #if torch.cuda.is_available():
-        #    print_red('clearing gpu cache')
-        #    torch.cuda.empty_cache()
                 
     print('TRAINING. Correct: ', train_correct, '/', train_total, '=', train_correct / train_total)
 

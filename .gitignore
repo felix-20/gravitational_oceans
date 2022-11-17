@@ -4,7 +4,7 @@ models_saved/*
 train_data/*
 test_data/*
 EMNIST
-
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
