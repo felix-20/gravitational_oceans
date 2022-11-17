@@ -15,6 +15,7 @@ class bcolors:
 PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
 PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
 PATH_TO_MODEL_FOLDER = os.path.join(os.getcwd(), 'models_saved')
+PATH_TO_LOG_FOLDER = os.path.join(os.getcwd(), 'logs')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
@@ -23,6 +24,8 @@ if not os.path.isdir(PATH_TO_TEST_FOLDER):
     os.makedirs(PATH_TO_TEST_FOLDER)
 if not os.path.isdir(PATH_TO_MODEL_FOLDER):
     os.makedirs(PATH_TO_MODEL_FOLDER)
+if not os.path.isdir(PATH_TO_LOG_FOLDER):
+    os.makedirs(PATH_TO_LOG_FOLDER)
 
 def print_red(*text):
     print(f'{bcolors.FAIL}{" ".join([str(t) for t in text])}{bcolors.ENDC}')

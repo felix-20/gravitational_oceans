@@ -11,12 +11,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 import torchvision.transforms.functional as TF
+from torch.utils.tensorboard import SummaryWriter
 from colorama import Fore
 from torchvision import datasets, transforms
 from tqdm import tqdm
+from os import path
 
 from src.data_management.crnn_dataset import GOCRNNDataset
-from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
+from src.helper.utils import PATH_TO_MODEL_FOLDER, PATH_TO_LOG_FOLDER, print_blue, print_green, print_red, print_yellow
 
 epochs = 5
 num_classes = 3
@@ -30,6 +32,7 @@ digits_per_sequence = 2
 number_of_sequences = 2566
 dataset_sequences = []
 dataset_labels = []
+writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs'))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using {device} for training')
@@ -96,7 +99,7 @@ criterion = nn.CTCLoss(blank=blank_label, reduction='mean', zero_infinity=True)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # ================================================ TRAINING MODEL ======================================================
-for _ in range(epochs):
+for num_epoch in range(epochs):
     # ============================================ TRAINING ============================================================
     train_correct = 0
     train_total = 0
@@ -115,9 +118,17 @@ for _ in range(epochs):
         loss.backward()
         optimizer.step()
         _, max_index = torch.max(y_pred, dim=2)  # max_index.shape == torch.Size([32, 64])
+        # my_i = 0
         for i in range(batch_size):
             raw_prediction = list(max_index[:, i].detach().cpu().numpy())  # len(raw_prediction) == 32
             prediction = torch.IntTensor([c for c, _ in groupby(raw_prediction) if c != blank_label])
+            # writer.add_scalar('test', 15, my_i)
+            # my_i += 1
+            print_red('-------------------')
+            for p in prediction:
+                print('.', end='')
+                writer.add_scalar('predicition', i * (num_epoch + 1), p)
+            print()
             if len(prediction) == len(y_train[i]) and torch.all(prediction.eq(y_train[i])):
                 train_correct += 1
             train_total += 1
