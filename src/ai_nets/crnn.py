@@ -89,8 +89,13 @@ class CRNN(nn.Module):
 
         out = out.permute(0, 3, 2, 1)
         out = out.reshape(batch_size, -1, self.gru_input_size)
+        print_blue(out.shape)
+        out = F.pad(out, (0, 1408, 0, 21), 'constant', 0)
+        print_blue(out.shape)
+
         out, _ = self.gru(out)
         out = torch.stack([F.log_softmax(self.fc(out[i]), dim=-1) for i in range(out.shape[0])])
+
         return out
 
 
@@ -116,6 +121,8 @@ for num_epoch in range(epochs):
         input_lengths = torch.IntTensor(batch_size).fill_(cnn_output_width)
         target_lengths = torch.IntTensor([len(t) for t in y_train])
 
+        print_red(target_lengths)
+        print_yellow(input_lengths)
         loss = criterion(y_pred, y_train, input_lengths, target_lengths)
         loss.backward()
         optimizer.step()

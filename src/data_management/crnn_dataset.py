@@ -71,7 +71,9 @@ class GOCRNNDataset(GODataset):
         data = []
         labels = []
         for stft_image, label in sequence:
-            data += list(stft_image)
+            replacement_data = np.ones(stft_image.shape) if label == 1 else np.zeros(stft_image.shape)
+
+            data += list(replacement_data)
             labels += [label]
 
         return (np.transpose(np.array(data), (2, 1, 0)), torch.tensor(labels, dtype=torch.int32))
