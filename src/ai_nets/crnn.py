@@ -20,15 +20,15 @@ from os import path
 from src.data_management.crnn_dataset import GOCRNNDataset
 from src.helper.utils import PATH_TO_MODEL_FOLDER, PATH_TO_LOG_FOLDER, print_blue, print_green, print_red, print_yellow
 
-epochs = 5
-num_classes = 3
+epochs = 25
+num_classes = 2
 blank_label = 2
 image_height = 360
 gru_hidden_size = 128
 gru_num_layers = 2
 cnn_output_height = 21
-cnn_output_width = 43
-digits_per_sequence = 2
+cnn_output_width = 5
+sequence_length = 5
 number_of_sequences = 2566
 dataset_sequences = []
 dataset_labels = []
@@ -37,11 +37,11 @@ writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', str(datetime.now())
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using {device} for training')
 
-seq_dataset = GOCRNNDataset(sequence_length=digits_per_sequence)# data_utils.TensorDataset(dataset_data, dataset_labels)
+seq_dataset = GOCRNNDataset(sequence_length=sequence_length)# data_utils.TensorDataset(dataset_data, dataset_labels)
 train_set, val_set = torch.utils.data.random_split(seq_dataset,
                                                    [round(len(seq_dataset) * 0.8), round(len(seq_dataset) * 0.2)])
 
-train_loader = torch.utils.data.DataLoader(train_set, batch_size=32, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_set, batch_size=8, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
 # ================================================= MODEL ==============================================================
@@ -62,7 +62,7 @@ class CRNN(nn.Module):
         self.conv6 = nn.Conv2d(128, 128, kernel_size=(3, 3), stride=2)
         self.norm6 = nn.InstanceNorm2d(128)
         self.gru_input_size = cnn_output_height * 128
-        self.gru = nn.GRU(self.gru_input_size, gru_hidden_size, gru_num_layers, batch_first=True, bidirectional=True)
+        self.gru = nn.GRU(59674, gru_hidden_size, gru_num_layers, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(gru_hidden_size * 2, num_classes)
 
     def forward(self, x):
@@ -88,10 +88,14 @@ class CRNN(nn.Module):
         out = F.leaky_relu(out)
 
         out = out.permute(0, 3, 2, 1)
-        out = out.reshape(batch_size, -1, self.gru_input_size)
-        print_blue(out.shape)
-        out = F.pad(out, (0, 1408, 0, 21), 'constant', 0)
-        print_blue(out.shape)
+
+        data_amount = out.shape[1] * out.shape[2] * out.shape[3]
+        pad_length = (data_amount % sequence_length) - 1
+        data_amount_per_sequence = (data_amount + pad_length) // sequence_length
+
+        out = out.reshape(batch_size, -1)
+        out = F.pad(out, (0, pad_length), 'constant', 0)
+        out = out.reshape(batch_size, sequence_length, data_amount_per_sequence)
 
         out, _ = self.gru(out)
         out = torch.stack([F.log_softmax(self.fc(out[i]), dim=-1) for i in range(out.shape[0])])
@@ -100,7 +104,7 @@ class CRNN(nn.Module):
 
 
 model = CRNN().to(device)
-criterion = nn.CTCLoss(blank=blank_label, reduction='mean', zero_infinity=True)
+criterion = nn.CTCLoss(reduction='mean', zero_infinity=True)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # ================================================ TRAINING MODEL ======================================================
@@ -113,27 +117,23 @@ for num_epoch in range(epochs):
     for x_train, y_train in tqdm(train_loader,
                                  position=0, leave=True,
                                  file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.GREEN, Fore.RESET)):
-        batch_size = x_train.shape[0]  # x_train.shape == torch.Size([64, 28, 140])
+        batch_size = x_train.shape[0]
         x_train = x_train.view(x_train.shape)
         optimizer.zero_grad()
         y_pred = model(x_train.to(device).float())
-        y_pred = y_pred.permute(1, 0, 2)  # y_pred.shape == torch.Size([64, 32, 11])
+        y_pred = y_pred.permute(1, 0, 2)
         input_lengths = torch.IntTensor(batch_size).fill_(cnn_output_width)
         target_lengths = torch.IntTensor([len(t) for t in y_train])
 
-        print_red(target_lengths)
-        print_yellow(input_lengths)
         loss = criterion(y_pred, y_train, input_lengths, target_lengths)
         loss.backward()
         optimizer.step()
-        _, max_index = torch.max(y_pred, dim=2)  # max_index.shape == torch.Size([32, 64])
+        
+        _, max_index = torch.max(y_pred, dim=2) 
 
         for i in range(batch_size):
-            raw_prediction = list(max_index[:, i].detach().cpu().numpy())  # len(raw_prediction) == 32
-            prediction = torch.IntTensor([c for c, _ in groupby(raw_prediction) if c != blank_label])
-
-            writer.add_scalar(f'predicition_length/epoch_{num_epoch}', len(prediction), time)
-            
+            prediction = torch.IntTensor(max_index[:, i].detach().cpu().numpy())
+                        
             partial_correct = 0
             partial_total = min(len(prediction), len(y_train[i]))
             if partial_total != 0:
@@ -167,8 +167,8 @@ for num_epoch in range(epochs):
         criterion(y_pred, y_val, input_lengths, target_lengths)
         _, max_index = torch.max(y_pred, dim=2)
         for i in range(batch_size):
-            raw_prediction = list(max_index[:, i].detach().cpu().numpy())
-            prediction = torch.IntTensor([c for c, _ in groupby(raw_prediction) if c != blank_label])
+            prediction = torch.IntTensor(max_index[:, i].detach().cpu().numpy())
+
             if len(prediction) == len(y_val[i]) and torch.all(prediction.eq(y_val[i])):
                 val_correct += 1
             val_total += 1
