@@ -22,3 +22,10 @@
 - started crnn from [this link](https://github.com/dredwardhyde/crnn-ctc-loss-pytorch)
 - created new dataset from kaggle training data
 - our generated data is not really suitable for training, because it has 5000 frequencies, but real data only has 360
+
+## 22-Nov-2022
+- fixed problems with CRNN, works now
+- set fixed sequence length for crnn, it does not need to guess
+- use tensorboard to visualize training progress
+- read [this paper](https://arxiv.org/pdf/2203.06717.pdf) -> increase kernel size
+- setup data and code on charlie -> took a while
