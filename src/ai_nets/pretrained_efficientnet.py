@@ -4,10 +4,12 @@ import os
 
 if 'IS_CHARLIE' in os.environ:
     print('We are on Charlie')
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-import gc, glob, os
+import gc
+import glob
+import os
 from concurrent.futures import ProcessPoolExecutor
 
 import h5py
@@ -18,7 +20,8 @@ import torch.nn as nn
 from scipy.stats import norm
 from timm import create_model
 
-from src.helper.utils import PATH_TO_TEST_FOLDER, PATH_TO_MODEL_FOLDER, print_green, print_red, print_blue, print_yellow
+from src.helper.utils import PATH_TO_MODEL_FOLDER, PATH_TO_TEST_FOLDER, print_blue, print_green, print_red, print_yellow
+
 
 def normalize(X):
     X = (X[..., None].view(X.real.dtype) ** 2).sum(-1)

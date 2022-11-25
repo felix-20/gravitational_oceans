@@ -13,7 +13,7 @@ from colorama import Fore
 from torchvision import datasets, transforms
 from tqdm import tqdm
 
-from src.helper.utils import print_green, print_blue, print_red, print_yellow
+from src.helper.utils import print_blue, print_green, print_red, print_yellow
 
 gpu = torch.device('cuda')
 # ============================================= PREPARING DATASET ======================================================
@@ -27,7 +27,7 @@ cnn_output_height = 4
 cnn_output_width = 32
 digits_per_sequence = 5
 number_of_sequences = 10000
-emnist_dataset = datasets.EMNIST('./EMNIST', split="digits", train=True, download=True)
+emnist_dataset = datasets.EMNIST('./EMNIST', split='digits', train=True, download=True)
 dataset_sequences = []
 dataset_labels = []
 
@@ -116,7 +116,7 @@ for _ in range(epochs):
     train_total = 0
     for x_train, y_train in tqdm(train_loader,
                                  position=0, leave=True,
-                                 file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.RESET)):
+                                 file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.GREEN, Fore.RESET)):
         batch_size = x_train.shape[0]  # x_train.shape == torch.Size([64, 28, 140])
         x_train = x_train.view(x_train.shape[0], 1, x_train.shape[1], x_train.shape[2])
         optimizer.zero_grad()
@@ -141,7 +141,7 @@ for _ in range(epochs):
     val_total = 0
     for x_val, y_val in tqdm(val_loader,
                              position=0, leave=True,
-                             file=sys.stdout, bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.BLUE, Fore.RESET)):
+                             file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.BLUE, Fore.RESET)):
         batch_size = x_val.shape[0]
         x_val = x_val.view(x_val.shape[0], 1, x_val.shape[1], x_val.shape[2])
         y_pred = model(x_val.cuda())
@@ -172,9 +172,9 @@ for i in range(x_test.shape[0]):
     test_preds.append(prediction)
 
 for j in range(len(x_test)):
-    mpl.rcParams["font.size"] = 8
+    mpl.rcParams['font.size'] = 8
     plt.imshow(x_test[j], cmap='gray')
-    mpl.rcParams["font.size"] = 18
-    plt.gcf().text(x=0.1, y=0.1, s="Actual: " + str(y_test[j].numpy()))
-    plt.gcf().text(x=0.1, y=0.2, s="Predicted: " + str(test_preds[j].numpy()))
+    mpl.rcParams['font.size'] = 18
+    plt.gcf().text(x=0.1, y=0.1, s='Actual: ' + str(y_test[j].numpy()))
+    plt.gcf().text(x=0.1, y=0.2, s='Predicted: ' + str(test_preds[j].numpy()))
     plt.show()
