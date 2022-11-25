@@ -30,6 +30,8 @@ class GODataset(Dataset):
             h1_stfts = hd5_file[f'{base_key}/H1/SFTs']
             l1_stfts = hd5_file[f'{base_key}/L1/SFTs']
 
+            print_blue(hd5_file[f'{base_key}/frequency_Hz'][0], '-', hd5_file[f'{base_key}/frequency_Hz'][-1])
+
             processed_h1_stfts = self._preprocess_stfts(h1_stfts)
             processed_l1_stfts = self._preprocess_stfts(l1_stfts)
 

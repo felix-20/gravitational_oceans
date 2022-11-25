@@ -11,3 +11,4 @@ efficientnet-pytorch
 fastai
 colorama
 tensorboard
+timm

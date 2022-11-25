@@ -17,7 +17,7 @@ class GODataGenerator:
         duration: int = 4 * 30 * 86400,
         detectors: str = 'H1,L1',
         sqrtSX: float = 1e-23,
-        Tsft: int = 1800 - 1,
+        Tsft: int = 360 - 1,
         SFTWindowType: str = 'tukey',
         SFTWindowBeta: float = 0.01,
         Band: float = 1.0) -> None:
@@ -64,7 +64,7 @@ class GODataGenerator:
                 'tref': self.writer_kwargs_cw['tstart'],
                 'F0': 100.0,
                 'F1': -1e-9,
-                'h0': sqrtSX / 20.0,
+                'h0': 1e-22, #sqrtSX / 20.0,
                 'cosi': 1,
                 'psi': 0.0,
                 'phi': 0.0,
@@ -112,7 +112,8 @@ class GODataGenerator:
         if not os.path.isdir(path_to_hdf5_files):
             os.makedirs(path_to_hdf5_files)
 
-        frequency_band_count = len(frequency) // 360
+        print_red(len(frequency))
+        frequency_band_count = 1
 
         for band_index in range(frequency_band_count):
             amplitudes_h1_band = amplitudes['H1'][band_index::frequency_band_count]
