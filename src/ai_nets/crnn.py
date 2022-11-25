@@ -21,24 +21,35 @@ from src.data_management.crnn_dataset import GOCRNNDataset
 from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 
-class CRNNParameters:
-    def __init__(self) -> None:
-        self.gru_hidden_size = 128
-        self.epochs = 25
-        self.num_classes = 2
-        self.blank_label = 2
-        self.image_height = 360
-        self.gru_num_layers = 2
-        self.cnn_output_height = 21
-        self.cnn_output_width = 5
-        self.sequence_length = 5
-        self.number_of_sequences = 2566
+class GOCRNNParameters:
+    def __init__(self,
+        gru_hidden_size: int = 128,
+        epochs: int = 2,
+        num_classes: int = 2,
+        blank_label: int = 2,
+        image_height: int = 360,
+        gru_num_layers: int = 2,
+        cnn_output_height: int = 21,
+        cnn_output_width: int = 5,
+        sequence_length: int = 5,
+        number_of_sequences: int = 2566) -> None:
+        
+        self.gru_hidden_size = gru_hidden_size
+        self.epochs = epochs
+        self.num_classes = num_classes
+        self.blank_label = blank_label
+        self.image_height = image_height
+        self.gru_num_layers = gru_num_layers
+        self.cnn_output_height = cnn_output_height
+        self.cnn_output_width = cnn_output_width
+        self.sequence_length = sequence_length
+        self.number_of_sequences = number_of_sequences
 
 
 # ================================================= MODEL ==============================================================
 class CRNN(nn.Module):
 
-    def __init__(self, params: CRNNParameters):
+    def __init__(self, params: GOCRNNParameters):
         super(CRNN, self).__init__()
         self.sequence_length = params.sequence_length
         self.conv1 = nn.Conv2d(3, 32, kernel_size=(31, 31))
@@ -94,8 +105,9 @@ class CRNN(nn.Module):
         return out
 
 
-class CRNNTrainer:
-    def __init__(self, params: CRNNParameters) -> None:
+class GOCRNNTrainer:
+    def __init__(self, params: GOCRNNParameters, model: nn.Module, dataset) -> None:
+        self.epochs = params.epochs
         self.cnn_output_width = params.cnn_output_width
         self.blank_label = params.blank_label
         self.dataset_sequences = []
@@ -105,14 +117,13 @@ class CRNNTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using {self.device} for training')
 
-        seq_dataset = GOCRNNDataset(sequence_length=params.sequence_length)# data_utils.TensorDataset(dataset_data, dataset_labels)
-        train_set, val_set = torch.utils.data.random_split(seq_dataset,
-                                                        [round(len(seq_dataset) * 0.8), round(len(seq_dataset) * 0.2)])
+        train_set, val_set = torch.utils.data.random_split(dataset,
+                                                        [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
         self.train_loader = torch.utils.data.DataLoader(train_set, batch_size=8, shuffle=True)
         self.val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
-        self.model = CRNN().to(self.device)
+        self.model = model.to(self.device)
         self.criterion = nn.CTCLoss(reduction='mean', zero_infinity=True)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
 
@@ -200,4 +211,6 @@ class CRNNTrainer:
         torch.save(self.model, f'{PATH_TO_MODEL_FOLDER}/crnn_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
 
 if __name__ == '__main__':
-    CRNNTrainer(CRNNParameters())
+    params = GOCRNNParameters()
+    dataset = GOCRNNDataset(sequence_length=params.sequence_length)
+    GOCRNNTrainer(params, CRNN(params), dataset).train()
