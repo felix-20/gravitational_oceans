@@ -107,13 +107,17 @@ def inference(model, path):
             RES += [model(tta).softmax(-1)[..., 1].mean(0)]
     return FID, torch.stack(RES, 0).cpu().float().numpy()
 
+def get_capped_model(path):
+    full_model = get_model(path)
+    capped_model = nn.Sequential(*(list(full_model.children())[:-4]))
+    return capped_model # output of shape [192, 1280]
+
 
 if __name__ == '__main__':
-    model = get_model(os.path.join(PATH_TO_MODEL_FOLDER, 'model_best.pth'))
+    model = get_capped_model(os.path.join(PATH_TO_MODEL_FOLDER, 'model_best.pth'))
     print_red('got model')
 
-    print_yellow(list(model.children())[-2])
-    print_blue(list(model.children())[-1])
+    print_yellow('\n'.join([str(i) for i in list(model.children())[-1:]]))
 
     """
     fid, infer = inference(
