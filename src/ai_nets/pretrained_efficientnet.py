@@ -61,21 +61,22 @@ class LargeKernel_debias(nn.Conv2d):
             finput, joined_kernel, padding=self.padding
         ).chunk(2, 1)
         ratio = torch.div(*torch.nn.functional.conv2d(reals, joined_kernel).chunk(2, 1))
-        output.sub_(power.mul_(ratio))
+        power = power.mul(ratio)
+        output = output.sub(power)
         return output.unflatten(0, input.shape[:2]).flatten(1, 2)
 
-def preprocess(num, input, H1, L1):
-    input = torch.from_numpy(input).to('cuda', non_blocking=True)
+def preprocess(num, input_tensor, H1, L1):
+    input_tensor = torch.from_numpy(input_tensor).to('cuda', non_blocking=True)
     rescale = torch.tensor([[H1, L1]]).to('cuda', non_blocking=True)
     tta = (
         torch.randn(
-            [num, *input.shape, 2], device=input.device, dtype=torch.float32
+            [num, *input_tensor.shape, 2], device=input_tensor.device, dtype=torch.float32
         )
         .square_()
         .sum(-1)
     )
     tta *= rescale[..., None, None] / 2
-    valid = ~torch.isnan(input); tta[:, valid] = input[valid].float()
+    valid = ~torch.isnan(input_tensor); tta[:, valid] = input_tensor[valid].float()
     return tta
 
 def get_model(path):

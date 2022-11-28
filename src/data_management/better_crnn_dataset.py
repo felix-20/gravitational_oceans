@@ -8,12 +8,15 @@ from tqdm import tqdm
 from src.data_management.dataset import GODataset
 from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
 from src.ai_nets.pretrained_efficientnet import normalize, dataload, preprocess
+from src.better_crnn import GOCRNN
 
 
 class GOBetterCRNNDataset(GODataset):
 
     def __init__(self, data_folder: str = PATH_TO_TEST_FOLDER, sequence_length: int = 5):
         print_green('Dataset ready!')
+
+        self.sequence_length = sequence_length
 
         no_cw_folder = path.join(data_folder, 'no_cw_hdf5')
         cw_folder = path.join(data_folder, 'cw_hdf5')
@@ -31,8 +34,14 @@ class GOBetterCRNNDataset(GODataset):
         file_path, label = self.frame[idx]
 
         _, input, H1, L1 = dataload(file_path)
-        tta = preprocess(64, input, H1, L1)
-        return (tta, label)
+        tta = preprocess(1, input, H1, L1)[0]
+        labels = [label] * self.sequence_length
+        return (tta, torch.tensor(labels, dtype=torch.int32))
+    
+    def prepare(self, cnn : GOCRNN):
+        for file_path, label in self.frame:
+            pass
+
 
 if __name__ == '__main__':
     item = GOBetterCRNNDataset().__getitem__(0)

@@ -32,7 +32,8 @@ class GOCRNNParameters:
         cnn_output_height: int = 21,
         cnn_output_width: int = 5,
         sequence_length: int = 5,
-        number_of_sequences: int = 2566) -> None:
+        number_of_sequences: int = 2566,
+        batch_size: int = 8) -> None:
         
         self.gru_hidden_size = gru_hidden_size
         self.epochs = epochs
@@ -44,6 +45,7 @@ class GOCRNNParameters:
         self.cnn_output_width = cnn_output_width
         self.sequence_length = sequence_length
         self.number_of_sequences = number_of_sequences
+        self.batch_size = batch_size
 
 
 # ================================================= MODEL ==============================================================
@@ -117,11 +119,11 @@ class GOCRNNTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using {self.device} for training')
 
-        train_set, val_set = torch.utils.data.random_split(dataset,
+        train_set, self.val_set = torch.utils.data.random_split(dataset,
                                                         [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
-        self.train_loader = torch.utils.data.DataLoader(train_set, batch_size=8, shuffle=True)
-        self.val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
+        self.train_loader = torch.utils.data.DataLoader(train_set, batch_size=params.batch_size, shuffle=True)
+        self.val_loader = torch.utils.data.DataLoader(self.val_set, batch_size=1, shuffle=True)
 
         self.model = model.to(self.device)
         self.criterion = nn.CTCLoss(reduction='mean', zero_infinity=True)

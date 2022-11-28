@@ -29,3 +29,8 @@
 - use tensorboard to visualize training progress
 - read [this paper](https://arxiv.org/pdf/2203.06717.pdf) -> increase kernel size
 - setup data and code on charlie -> took a while
+
+## 29-Nov-2022
+- analyzed kaggle solution discussed last week
+- adding more noise is valid augmentation (maybe even the best augemtation)
+- setup and successfully develop stuff on charlie (using ssh)

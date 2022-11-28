@@ -19,13 +19,14 @@ class GOCRNN(nn.Module):
         self.sequence_length = params.sequence_length
 
         self.gru_input_size = params.cnn_output_height * 64
-        self.gru = nn.GRU(10036, params.gru_hidden_size, params.gru_num_layers, batch_first=True, bidirectional=True)
+        self.gru = nn.GRU(70657, params.gru_hidden_size, params.gru_num_layers, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(params.gru_hidden_size * 2, params.num_classes)
 
     def forward(self, x):
         batch_size = x.shape[0]
 
-        out = self.cnn.forward(x)
+        out = self.cnn(x)
+
         out = out.permute(0, 3, 2, 1)
 
         data_amount = out.shape[1] * out.shape[2] * out.shape[3]
@@ -43,7 +44,8 @@ class GOCRNN(nn.Module):
 
 
 if __name__ == '__main__':
-    params = GOCRNNParameters()
+    params = GOCRNNParameters(batch_size = 64,
+                              epochs=8)
 
     print_green('setting up crnn')
     cnn = get_capped_model(os.path.join(PATH_TO_MODEL_FOLDER, 'model_best.pth'))
