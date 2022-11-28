@@ -34,7 +34,7 @@ class GOCRNNParameters:
         sequence_length: int = 5,
         number_of_sequences: int = 2566,
         batch_size: int = 8) -> None:
-        
+
         self.gru_hidden_size = gru_hidden_size
         self.epochs = epochs
         self.num_classes = num_classes

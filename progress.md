@@ -33,4 +33,4 @@
 ## 29-Nov-2022
 - analyzed kaggle solution discussed last week
 - adding more noise is valid augmentation (maybe even the best augemtation)
-- setup and successfully develop stuff on charlie (using ssh)
+- setup and successfully develop stuff on charlie (using ssh, git repo)

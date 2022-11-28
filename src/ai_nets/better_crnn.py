@@ -1,12 +1,14 @@
 import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
+from src.ai_nets.crnn import GOCRNNParameters, GOCRNNTrainer
 from src.ai_nets.pretrained_efficientnet import get_capped_model
-from src.ai_nets.crnn import GOCRNNTrainer, GOCRNNParameters
 from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
+from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
+
 
 class GOCRNN(nn.Module):
 
@@ -30,7 +32,7 @@ class GOCRNN(nn.Module):
         out = out.permute(0, 3, 2, 1)
 
         data_amount = out.shape[1] * out.shape[2] * out.shape[3]
-        pad_length = self.sequence_length - (data_amount % self.sequence_length) 
+        pad_length = self.sequence_length - (data_amount % self.sequence_length)
         data_amount_per_sequence = (data_amount + pad_length) // self.sequence_length
 
         out = out.reshape(batch_size, -1)

@@ -5,10 +5,10 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from src.ai_nets.pretrained_efficientnet import dataload, normalize, preprocess
+from src.better_crnn import GOCRNN
 from src.data_management.dataset import GODataset
 from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
-from src.ai_nets.pretrained_efficientnet import normalize, dataload, preprocess
-from src.better_crnn import GOCRNN
 
 
 class GOBetterCRNNDataset(GODataset):
@@ -37,7 +37,7 @@ class GOBetterCRNNDataset(GODataset):
         tta = preprocess(1, input, H1, L1)[0]
         labels = [label] * self.sequence_length
         return (tta, torch.tensor(labels, dtype=torch.int32))
-    
+
     def prepare(self, cnn : GOCRNN):
         for file_path, label in self.frame:
             pass

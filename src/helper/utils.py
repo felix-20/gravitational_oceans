@@ -1,5 +1,8 @@
-import os, h5py
+import os
+
+import h5py
 import numpy as np
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -59,7 +62,7 @@ def open_hdf5_file(path_to_file):
         result['l1']['amplitudes'] = np.array(hd5_file[f'{base_key}/L1/SFTs'])
         result['h1']['timestamps'] = np.array(hd5_file[f'{base_key}/H1/timestamps_GPS'])
         result['l1']['timestamps'] = np.array(hd5_file[f'{base_key}/L1/timestamps_GPS'])
-    
+
     return result
 
 

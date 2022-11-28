@@ -1,8 +1,11 @@
-from os import path, listdir
-import numpy as np
 from functools import cmp_to_key
+from os import listdir, path
 
-from src.helper.utils import PATH_TO_TEST_FOLDER, PATH_TO_CACHE_FOLDER, print_green, open_hdf5_file
+import numpy as np
+from tqdm import tqdm
+
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, open_hdf5_file, print_green
+
 
 class GOHDF5Sorter:
 
@@ -25,7 +28,7 @@ class GOHDF5Sorter:
             self.sorted_by_frequency = np.load(self.sorted_by_frequency_path)
             return self.sorted_by_frequency
 
-        
+
         no_cw_folder = path.join(self.data_folder, 'no_cw_hdf5')
         cw_folder = path.join(self.data_folder, 'cw_hdf5')
 
@@ -33,17 +36,21 @@ class GOHDF5Sorter:
         file_label_mapping += [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
         file_label_mapping += [(path.join(cw_folder, file_name), 1) for file_name in listdir(cw_folder)]
 
-        def _compare_frequencies(file_a, file_b):
-            data_a = open_hdf5_file(file_a[0])
-            data_b = open_hdf5_file(file_b[0])
+        print('Loading all data')
+        frequency_lookup = self._preprocess_freq_ranges(file_label_mapping)
 
-            if data_a['frequencies'][0] < data_b['frequencies'][0]:
+        def _compare_frequencies(file_a, file_b):
+            data_a = frequency_lookup[file_a[0]]
+            data_b = frequency_lookup[file_b[0]]
+
+            if data_a < data_b:
                 return -1
-            elif data_a['frequencies'][0] > data_b['frequencies'][0]:
+            elif data_a > data_b:
                 return 1
             else:
                 return 0
 
+        print('Sorting data by frequency')
         file_label_mapping.sort(key=cmp_to_key(_compare_frequencies))
         self.sorted_by_frequency = file_label_mapping
 
@@ -51,7 +58,14 @@ class GOHDF5Sorter:
 
         return self.sorted_by_frequency
 
+    def _preprocess_freq_ranges(self, file_label_mapping):
+        result = {}
+        for path, _ in tqdm(file_label_mapping):
+            result[path] = open_hdf5_file(path)['frequencies'][0]
+        return result
+
 
 if __name__ == '__main__':
     sorter = GOHDF5Sorter()
-    print_green(sorter.get_sorted_frequencies())
+    sorted_res = sorter.get_sorted_frequencies()
+    # print_green(sorted_res)
