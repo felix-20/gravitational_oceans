@@ -6,41 +6,45 @@ import torch
 from tqdm import tqdm
 
 from src.ai_nets.pretrained_efficientnet import dataload, normalize, preprocess
-from src.better_crnn import GOCRNN
 from src.data_management.dataset import GODataset
-from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
+from src.helper.utils import PATH_TO_CACHE_FOLDER, print_green, print_blue, print_red, print_yellow
+from src.data_management.hdf5_sorter import GOHDF5Sorter
 
 
 class GOBetterCRNNDataset(GODataset):
 
-    def __init__(self, data_folder: str = PATH_TO_TEST_FOLDER, sequence_length: int = 5):
+    def __init__(self, data_folder: str = path.join(PATH_TO_CACHE_FOLDER, 'pre_predicted'), sequence_length: int = 5):
         print_green('Dataset ready!')
 
+        self.data_folder = data_folder
         self.sequence_length = sequence_length
 
-        no_cw_folder = path.join(data_folder, 'no_cw_hdf5')
-        cw_folder = path.join(data_folder, 'cw_hdf5')
+        # npy-files are prepredicted by the best possible CNN
+        self.npy_files = listdir(data_folder)
+        self.sorter = GOHDF5Sorter()
 
-        self.frame = []
-        self.frame += [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
-        self.frame += [(path.join(cw_folder, file_name), 1) for file_name in listdir(cw_folder)]
-
-        shuffle(self.frame)
+        self.sorter.get_sorted_frequencies()
 
     def __len__(self) -> int:
-        return len(self.frame)
+        return len(self.npy_files) - self.sequence_length + 1
 
     def __getitem__(self, idx) -> dict:
-        file_path, label = self.frame[idx]
+        files_with_labels = self.sorter.get_sorted_frequencies()[idx : idx+self.sequence_length]
 
-        _, input, H1, L1 = dataload(file_path)
-        tta = preprocess(1, input, H1, L1)[0]
-        labels = [label] * self.sequence_length
-        return (tta, torch.tensor(labels, dtype=torch.int32))
+        cnn_predictions = []
+        labels = []
+        for hdf5_file_path, label in files_with_labels:
+            npy_file_path = path.join(self.data_folder, path.basename(hdf5_file_path)[:-5] + '.npy')
+            cnn_predictions += [np.load(npy_file_path)[0]]
+            labels += [int(label)]
+        
+        result_tensor = torch.tensor(np.concatenate(cnn_predictions))
+        
+        return (result_tensor, torch.tensor(labels, dtype=torch.int32))
+        
 
-    def prepare(self, cnn : GOCRNN):
-        for file_path, label in self.frame:
-            pass
+
+
 
 
 if __name__ == '__main__':

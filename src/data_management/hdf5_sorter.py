@@ -13,14 +13,29 @@ class GOHDF5Sorter:
         self.data_folder = data_folder
 
         self.sorted_by_frequency = []
-        self.label_mapping = []
+        self.label_mapping = {}
 
         self.sorted_by_frequency_path = path.join(PATH_TO_CACHE_FOLDER, 'sorted_by_frequency.npy')
+    
+    def get_label_mapping(self):
+
+        # if dict is filled -> return it
+        if self.label_mapping != {}:
+            return self.label_mapping
+
+        no_cw_folder = path.join(self.data_folder, 'no_cw_hdf5')
+        cw_folder = path.join(self.data_folder, 'cw_hdf5')
+
+        file_label_mapping = [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
+        file_label_mapping += [(path.join(cw_folder, file_name), 1) for file_name in listdir(cw_folder)]
+
+        self.label_mapping = dict(file_label_mapping)
+        return self.label_mapping
 
     def get_sorted_frequencies(self):
 
         # if list is filled -> return it
-        if self.sorted_by_frequency:
+        if len(self.sorted_by_frequency) != 0:
             return self.sorted_by_frequency
 
         # if file exists -> load it
@@ -32,8 +47,7 @@ class GOHDF5Sorter:
         no_cw_folder = path.join(self.data_folder, 'no_cw_hdf5')
         cw_folder = path.join(self.data_folder, 'cw_hdf5')
 
-        file_label_mapping = []
-        file_label_mapping += [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
+        file_label_mapping = [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
         file_label_mapping += [(path.join(cw_folder, file_name), 1) for file_name in listdir(cw_folder)]
 
         print('Loading all data')
