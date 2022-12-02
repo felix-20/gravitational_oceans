@@ -110,7 +110,7 @@ def inference(model, path):
 
 def get_capped_model(path):
     full_model = get_model(path)
-    capped_model = nn.Sequential(*(list(full_model.children())[:-3]))
+    capped_model = nn.Sequential(*(list(full_model.children())[:-4]))
     return capped_model # output of shape [192, 1280]
 
 
