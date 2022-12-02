@@ -6,7 +6,7 @@ from os import path, makedirs, listdir
 from src.ai_nets.pretrained_efficientnet import dataload, preprocess, get_capped_model
 from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_MODEL_FOLDER, print_red
 
-def predict(cnn, paths_to_predict_files: str, multiplier: int = 8):
+def predict(cnn, paths_to_predict_files: str, multiplier: int = 1):
     predict_folder = path.join(PATH_TO_CACHE_FOLDER, 'pre_predicted')
     if not path.isdir(predict_folder):
         makedirs(predict_folder)
