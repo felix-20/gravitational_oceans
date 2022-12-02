@@ -66,6 +66,7 @@ class LargeKernel_debias(nn.Conv2d):
         return output.unflatten(0, input.shape[:2]).flatten(1, 2)
 
 def preprocess(num, input_tensor, H1, L1):
+    # clean up the data by filling up all holes (None) in input_tensor with sencible random values
     input_tensor = torch.from_numpy(input_tensor).to('cuda', non_blocking=True)
     rescale = torch.tensor([[H1, L1]]).to('cuda', non_blocking=True)
     tta = (
@@ -76,7 +77,8 @@ def preprocess(num, input_tensor, H1, L1):
         .sum(-1)
     )
     tta *= rescale[..., None, None] / 2
-    valid = ~torch.isnan(input_tensor); tta[:, valid] = input_tensor[valid].float()
+    valid = ~torch.isnan(input_tensor)
+    tta[:, valid] = input_tensor[valid].float()
     return tta
 
 def get_model(path):
