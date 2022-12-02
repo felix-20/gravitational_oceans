@@ -115,6 +115,7 @@ class GOCRNNTrainer:
         self.dataset_sequences = []
         self.dataset_labels = []
         self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', str(datetime.now())))
+        self.sequence_length = params.sequence_length
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using {self.device} for training')
@@ -130,8 +131,13 @@ class GOCRNNTrainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
 
     def train(self) -> None:
+        val_max_partial_acurracy = 0.7 # validation threshold
+        val_save_epoch_threshhold = 5 # save models only after this epoch
+
         # ================================================ TRAINING MODEL ======================================================
         for num_epoch in range(self.epochs):
+            print_blue('Epoch:', num_epoch)
+
             # ============================================ TRAINING ============================================================
             train_correct = 0
             train_total = 0
@@ -158,13 +164,10 @@ class GOCRNNTrainer:
                     prediction = torch.IntTensor(max_index[:, i].detach().cpu().numpy())
 
                     partial_correct = 0
-                    partial_total = min(len(prediction), len(y_train[i]))
-                    if partial_total != 0:
-                        for j  in range(partial_total):
-                            if prediction[j] == y_train[i][j]:
-                                partial_correct += 1
-
-                        self.writer.add_scalar(f'partial_correct/epoch_{num_epoch}', partial_correct / partial_total, time)
+                    for j  in range(self.sequence_length):
+                        if prediction[j] == y_train[i][j]:
+                            partial_correct += 1
+                    self.writer.add_scalar(f'partial_correct/epoch_{num_epoch}', partial_correct / self.sequence_length, time)
 
                     if len(prediction) == len(y_train[i]) and torch.all(prediction.eq(y_train[i])):
                         train_correct += 1
@@ -178,6 +181,8 @@ class GOCRNNTrainer:
             # ============================================ VALIDATION ==========================================================
             val_correct = 0
             val_total = 0
+            val_partial_accuracy = 0
+            val_counter = 0
             for x_val, y_val in tqdm(self.val_loader,
                                     position=0, leave=True,
                                     file=sys.stdout, bar_format='{l_bar}%s{bar}%s{r_bar}' % (Fore.BLUE, Fore.RESET)):
@@ -192,10 +197,26 @@ class GOCRNNTrainer:
                 for i in range(batch_size):
                     prediction = torch.IntTensor(max_index[:, i].detach().cpu().numpy())
 
+                    partial_correct = 0
+                    for j  in range(self.sequence_length):
+                        if prediction[j] == y_train[i][j]:
+                            partial_correct += 1
+                    val_partial_accuracy += partial_correct / self.sequence_length
+                    val_counter += 1
+
                     if len(prediction) == len(y_val[i]) and torch.all(prediction.eq(y_val[i])):
                         val_correct += 1
                     val_total += 1
             print('TESTING. Correct: ', val_correct, '/', val_total, '=', val_correct / val_total)
+
+            val_partial_accuracy /= val_counter
+
+            # ============================================ SAVING ==============================================================
+
+            if num_epoch > val_save_epoch_threshhold and val_partial_accuracy > val_max_partial_acurracy:
+                val_max_partial_acurracy = val_partial_accuracy
+                print_yellow('Saving model with an amazing accuracy of', val_partial_accuracy)
+                torch.save(self.model, f'{PATH_TO_MODEL_FOLDER}/bettercrnn_{val_partial_accuracy}_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
 
         # ============================================ TESTING =================================================================
         number_of_test_imgs = 10

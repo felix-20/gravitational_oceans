@@ -43,7 +43,7 @@ class GOCRNN(nn.Module):
 
 if __name__ == '__main__':
     params = GOCRNNParameters(batch_size = 64,
-                              epochs=8)
+                              epochs=25)
 
     print_green('setting up crnn')
     crnn = GOCRNN(params)
