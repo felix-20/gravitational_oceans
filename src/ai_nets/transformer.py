@@ -26,7 +26,7 @@ from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
 
 
 # parameters
-sequence_length = 5
+sequence_length = 8 # needs to be a power of two
 batch_size = 16
 dim_model = 512 # (closest power of two to shape of data)
 
@@ -101,7 +101,7 @@ class GOTransformer(nn.Module):
 
         # Embedding + positional encoding - Out size = (batch_size, sequence length, dim_model)
         #src = self.embedding(src) * math.sqrt(self.dim_model)
-        tgt = self.embedding(tgt) * math.sqrt(self.dim_model)
+        tgt = self.embed_token(tgt)
         src = self.positional_encoder(src)
         tgt = self.positional_encoder(tgt)
         
@@ -138,89 +138,16 @@ class GOTransformer(nn.Module):
         # If matrix = [1,2,3,0,0,0] where pad_token=0, the result mask is
         # [False, False, False, True, True, True]
         return (matrix == pad_token)
+    
+    def embed_token(self, token):
+        return self.embedding(token) * math.sqrt(self.dim_model)
 
-
-"""
-def generate_random_data(n):
-    SOS_token = np.array([2])
-    EOS_token = np.array([3])
-    length = 8
-
-    data = []
-
-    # 1,1,1,1,1,1 -> 1,1,1,1,1
-    for i in range(n // 3):
-        X = np.concatenate((SOS_token, np.ones(length), EOS_token))
-        y = np.concatenate((SOS_token, np.ones(length), EOS_token))
-        data.append([X, y])
-
-    # 0,0,0,0 -> 0,0,0,0
-    for i in range(n // 3):
-        X = np.concatenate((SOS_token, np.zeros(length), EOS_token))
-        y = np.concatenate((SOS_token, np.zeros(length), EOS_token))
-        data.append([X, y])
-
-    # 1,0,1,0 -> 1,0,1,0,1
-    for i in range(n // 3):
-        X = np.zeros(length)
-        start = random.randint(0, 1)
-
-        X[start::2] = 1
-
-        y = np.zeros(length)
-        if X[-1] == 0:
-            y[::2] = 1
-        else:
-            y[1::2] = 1
-
-        X = np.concatenate((SOS_token, X, EOS_token))
-        y = np.concatenate((SOS_token, y, EOS_token))
-
-        data.append([X, y])
-
-    np.random.shuffle(data)
-
-    return data
-
-
-def batchify_data(data, batch_size=16, padding=False, padding_token=-1):
-    batches = []
-    for idx in range(0, len(data), batch_size):
-        # We make sure we dont get the last bit if its not batch_size size
-        if idx + batch_size < len(data):
-            # Here you would need to get the max length of the batch,
-            # and normalize the length with the PAD token.
-            if padding:
-                max_batch_length = 0
-
-                # Get longest sentence in batch
-                for seq in data[idx : idx + batch_size]:
-                    if len(seq) > max_batch_length:
-                        max_batch_length = len(seq)
-
-                # Append X padding tokens until it reaches the max length
-                for seq_idx in range(batch_size):
-                    remaining_length = max_batch_length - len(data[idx + seq_idx])
-                    data[idx + seq_idx] += [padding_token] * remaining_length
-
-            batches.append(np.array(data[idx : idx + batch_size]).astype(np.int64))
-
-    print(f"{len(batches)} batches of size {batch_size}")
-
-    return batches
-"""
 
 dataset = GOBetterCRNNDataset(sequence_length=sequence_length)
 train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
-
-# train_data = generate_random_data(9000)
-# val_data = generate_random_data(3000)
-
-# train_dataloader = batchify_data(train_data)
-# val_dataloader = batchify_data(val_data)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -236,16 +163,46 @@ model = GOTransformer(
 opt = torch.optim.SGD(model.parameters(), lr=0.01)
 loss_fn = nn.CrossEntropyLoss()
 
+
+SOS_TOKEN = 2
+EOS_TOKEN = 3
+SOS_TOKEN_EMBEDDED = model.embed_token(torch.tensor([SOS_TOKEN]).to(device))
+EOS_TOKEN_EMBEDDED = model.embed_token(torch.tensor([EOS_TOKEN]).to(device))
+
+
+def add_sequence_tokens(batch):
+    if batch[0].type() == torch.LongTensor:
+        return [torch.concat((SOS_TOKEN, item, EOS_TOKEN)) for item in batch]
+    else:
+        return batch
+        #print_yellow(SOS_TOKEN_EMBEDDED.shape)
+        #print_yellow(batch[0].shape)
+        #print_yellow(EOS_TOKEN_EMBEDDED.shape)
+        #return [torch.concat((SOS_TOKEN_EMBEDDED, item, EOS_TOKEN_EMBEDDED)) for item in batch]
+
+def features_to_embedding_vectors(features):
+    # 192, 12, 184 -> 8, 52992
+    split_and_flattened = torch.reshape(features, (sequence_length, -1))
+    # 8, 52992 -> 8, 64
+    cut_to_embed_size = split_and_flattened[:, :dim_model // sequence_length]
+    # 8, 64 -> 1, 512
+    embedded = torch.reshape(cut_to_embed_size, (1, -1))
+    return embedded
+
 def train_loop(model, opt, loss_fn, dataloader):
     model.train()
     total_loss = 0
     
     for x, y in dataloader:
         # convert from a multi-dimensional feature vector to a simple embedding-vector
-        x_list = [list(item.flatten()[:dim_model]) for item in x]
-        x = torch.FloatTensor(x_list)
+        x = torch.stack([features_to_embedding_vectors(item) for item in x])
 
-        x, y = x.to(device), y.type(torch.long).to(device)
+        x = x.to(device)
+        y = y.type(torch.long).to(device)
+
+        # prepend and append the sequence tokens
+        x = add_sequence_tokens(x)
+        y = add_sequence_tokens(y)
 
         # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
         y_input = y[:,:-1]
@@ -277,10 +234,14 @@ def validation_loop(model, loss_fn, dataloader):
     with torch.no_grad():
         for x, y in dataloader:
             # convert from a multi-dimensional feature vector to a simple embedding-vector
-            x_list = [list(item.flatten()[:dim_model]) for item in x]
-            x = torch.FloatTensor(x_list)
+            x = torch.stack([features_to_embedding_vectors(item) for item in x])
 
-            x, y = x.to(device), y.type(torch.long).to(device)
+            x = x.to(device)
+            y = y.type(torch.long).to(device)
+
+            # prepend and append the sequence tokens
+            x = add_sequence_tokens(x)
+            y = add_sequence_tokens(y)
 
             # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
             y_input = y[:,:-1]
