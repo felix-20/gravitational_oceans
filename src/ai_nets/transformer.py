@@ -16,19 +16,22 @@ Blog articles:
 import torch
 import torch.nn as nn
 
-import random
+from os import path
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+from tqdm import tqdm
 
-from src.helper.utils import print_blue, print_green, print_red, print_yellow
+from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER
 from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
 
 
 # parameters
-sequence_length = 8 # needs to be a power of two
+sequence_length = 16
 batch_size = 16
-dim_model = 512 # (closest power of two to shape of data)
+dim_model = 1024 # (closest power of two to shape of data)
 
 
 class PositionalEncoding(nn.Module):
@@ -112,9 +115,7 @@ class GOTransformer(nn.Module):
 
         # Transformer blocks - Out size = (sequence length, batch_size, num_tokens)
         transformer_out = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
-        #print_red(transformer_out.shape)
         linear_out = self.linear(transformer_out)
-        #print_red(linear_out.shape)
         
         return linear_out
       
@@ -124,13 +125,6 @@ class GOTransformer(nn.Module):
         mask = mask.float()
         mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf
         mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
-        
-        # EX for size=5:
-        # [[0., -inf, -inf, -inf, -inf],
-        #  [0.,   0., -inf, -inf, -inf],
-        #  [0.,   0.,   0., -inf, -inf],
-        #  [0.,   0.,   0.,   0., -inf],
-        #  [0.,   0.,   0.,   0.,   0.]]
         
         return mask
     
@@ -142,52 +136,20 @@ class GOTransformer(nn.Module):
     def embed_token(self, token):
         return self.embedding(token) * math.sqrt(self.dim_model)
 
-
-dataset = GOBetterCRNNDataset(sequence_length=sequence_length)
-train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
-
-train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-model = GOTransformer(
-    num_tokens=4,
-    dim_model=dim_model,
-    num_heads=2,
-    num_encoder_layers=3,
-    num_decoder_layers=3,
-    dropout_p=0.1
-).to(device)
-
-opt = torch.optim.SGD(model.parameters(), lr=0.01)
-loss_fn = nn.CrossEntropyLoss()
-
-
-SOS_TOKEN = 2
-EOS_TOKEN = 3
-SOS_TOKEN_EMBEDDED = model.embed_token(torch.tensor([SOS_TOKEN]).to(device))
-EOS_TOKEN_EMBEDDED = model.embed_token(torch.tensor([EOS_TOKEN]).to(device))
-
-
 def add_sequence_tokens(batch):
-    if batch[0].type() == torch.LongTensor:
-        return [torch.concat((SOS_TOKEN, item, EOS_TOKEN)) for item in batch]
+    if isinstance(batch[0], (torch.LongTensor, torch.cuda.LongTensor)):
+        return torch.stack([torch.concat((SOS_TOKEN, item, EOS_TOKEN)) for item in batch])
+    elif isinstance(batch[0], (torch.FloatTensor, torch.cuda.FloatTensor)):
+        return torch.stack([torch.concat((SOS_TOKEN_EMBEDDED, item, EOS_TOKEN_EMBEDDED)) for item in batch])
     else:
         return batch
-        #print_yellow(SOS_TOKEN_EMBEDDED.shape)
-        #print_yellow(batch[0].shape)
-        #print_yellow(EOS_TOKEN_EMBEDDED.shape)
-        #return [torch.concat((SOS_TOKEN_EMBEDDED, item, EOS_TOKEN_EMBEDDED)) for item in batch]
-
+        
 def features_to_embedding_vectors(features):
-    # 192, 12, 184 -> 8, 52992
+    # 192, 12, 115 -> 5, 52992
     split_and_flattened = torch.reshape(features, (sequence_length, -1))
-    # 8, 52992 -> 8, 64
-    cut_to_embed_size = split_and_flattened[:, :dim_model // sequence_length]
-    # 8, 64 -> 1, 512
-    embedded = torch.reshape(cut_to_embed_size, (1, -1))
-    return embedded
+    # 5, 52992 -> 5, 512
+    embedded = split_and_flattened[:, :dim_model]
+    return embedded * math.sqrt(dim_model)
 
 def train_loop(model, opt, loss_fn, dataloader):
     model.train()
@@ -220,16 +182,19 @@ def train_loop(model, opt, loss_fn, dataloader):
         loss = loss_fn(pred, y_expected)
 
         opt.zero_grad()
-        loss.backward()
+        loss.backward(retain_graph=True)
         opt.step()
     
         total_loss += loss.detach().item()
         
     return total_loss / len(dataloader)
 
-def validation_loop(model, loss_fn, dataloader):
+def validation_loop(model, loss_fn, dataloader, epoch: int):
     model.eval()
     total_loss = 0
+    total_accuracy_complete = 0
+    total_accuracy_start = 0
+    c_time = 0
     
     with torch.no_grad():
         for x, y in dataloader:
@@ -254,83 +219,81 @@ def validation_loop(model, loss_fn, dataloader):
             # Standard training except we pass in y_input and src_mask
             pred = model(x, y_input, tgt_mask)
 
+            # get accuracy
+            _, max_index = torch.max(pred, dim=2)
+            predicted = max_index.flatten()
+            expected = y_expected.flatten()
+            correct_complete = 0
+            correct_start = 0
+            sequence_length_dec = sequence_length - 1
+            for i in range(sequence_length_dec):
+                if predicted[i] == expected[i]:
+                    correct_complete += 1
+                    if correct_start == i:
+                        correct_start += 1
+            total_accuracy_complete += correct_complete / sequence_length_dec
+            total_accuracy_start += correct_start / sequence_length_dec
+
+            writer.add_scalar(f'total_acc/epoch_{epoch}', correct_complete / sequence_length_dec, c_time)
+            writer.add_scalar(f'total_acc_start/epoch_{epoch}', correct_start / sequence_length_dec, c_time)
+
             # Permute pred to have batch size first again
             pred = pred.permute(1, 2, 0)      
             loss = loss_fn(pred, y_expected)
             total_loss += loss.detach().item()
         
-    return total_loss / len(dataloader)
+            c_time += 1
+
+    total_loss /= len(dataloader)
+    total_accuracy_complete /= len(dataloader)
+    total_accuracy_start /= len(dataloader)
+
+    return total_loss, total_accuracy_complete, total_accuracy_start
 
 def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs):
-    # Used for plotting later on
-    train_loss_list, validation_loss_list = [], []
-    
-    print("Training and validating model")
-    for epoch in range(epochs):
-        print("-"*25, f"Epoch {epoch + 1}","-"*25)
+    print_green("Training and validating model")
+    max_accuracy_start = 0.6
+    for epoch in tqdm(range(epochs), 'Epochs'):
         
         train_loss = train_loop(model, opt, loss_fn, train_dataloader)
-        train_loss_list += [train_loss]
         
-        validation_loss = validation_loop(model, loss_fn, val_dataloader)
-        validation_loss_list += [validation_loss]
-        
-        print(f"Training loss: {train_loss:.4f}")
-        print(f"Validation loss: {validation_loss:.4f}")
-        print()
-        
-    return train_loss_list, validation_loss_list
+        validation_loss, acc_complete, acc_start = validation_loop(model, loss_fn, val_dataloader, epoch)
 
-train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_loader, val_loader, 10)
+        writer.add_scalar('loss/training', train_loss, epoch)
+        writer.add_scalar('loss/validation', validation_loss, epoch)
+        writer.add_scalar('accuracy/complete', acc_complete, epoch)
+        writer.add_scalar('accuracy/start', acc_start, epoch)
 
-plt.plot(train_loss_list, label = "Train loss")
-plt.plot(validation_loss_list, label = "Validation loss")
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.title('Loss vs Epoch')
-plt.legend()
-plt.show()
+        if acc_start > max_accuracy_start:
+            torch.save(model, f'{PATH_TO_MODEL_FOLDER}/transformer_{acc_start}_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
+            max_accuracy_start = acc_start
 
-def predict(model, input_sequence, max_length=15, SOS_token=2, EOS_token=3):
-    model.eval()
-    
-    y_input = torch.tensor([[SOS_token]], dtype=torch.long, device=device)
 
-    num_tokens = len(input_sequence[0])
+if __name__ == '__main__':
+    dataset = GOBetterCRNNDataset(sequence_length=sequence_length)
+    train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
-    for _ in range(max_length):
-        # Get source mask
-        tgt_mask = model.get_tgt_mask(y_input.size(1)).to(device)
-        
-        pred = model(input_sequence, y_input, tgt_mask)
-        
-        next_item = pred.topk(1)[1].view(-1)[-1].item() # num with highest probability
-        next_item = torch.tensor([[next_item]], device=device)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
-        # Concatenate previous input with predicted best word
-        y_input = torch.cat((y_input, next_item), dim=1)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # Stop if model predicts end of sentence
-        if next_item.view(-1).item() == EOS_token:
-            break
+    model = GOTransformer(
+        num_tokens=4,
+        dim_model=dim_model,
+        num_heads=2,
+        num_encoder_layers=3,
+        num_decoder_layers=3,
+        dropout_p=0.1
+    ).to(device)
 
-    return y_input.view(-1).tolist()
-  
-  
-# Here we test some examples to observe how the model predicts
-examples = [
-    torch.tensor([[2, 0, 0, 0, 0, 0, 0, 0, 0, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 1, 1, 1, 1, 1, 1, 1, 1, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 0, 1, 3]], dtype=torch.long, device=device)
-]
+    SOS_TOKEN = torch.tensor([2]).to(device)
+    EOS_TOKEN = torch.tensor([3]).to(device)
+    SOS_TOKEN_EMBEDDED = model.embed_token(SOS_TOKEN)
+    EOS_TOKEN_EMBEDDED = model.embed_token(EOS_TOKEN)
 
-for idx, example in enumerate(examples):
-    result = predict(model, example)
-    print(f"Example {idx}")
-    print(f"Input: {example.view(-1).tolist()[1:-1]}")
-    print(f"Continuation: {result[1:-1]}")
-    print()
+    opt = torch.optim.SGD(model.parameters(), lr=0.01)
+    loss_fn = nn.CrossEntropyLoss()
 
+    writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'transformer_{str(datetime.now())}'))
+    fit(model, opt, loss_fn, train_loader, val_loader, 10)
