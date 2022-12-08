@@ -34,3 +34,11 @@
 - analyzed kaggle solution discussed last week
 - adding more noise is valid augmentation (maybe even the best augemtation)
 - setup and successfully develop stuff on charlie (using ssh, git repo)
+
+## 08-Dec-2022
+- prepared presentation for last week Thursday
+- started with transformer from [this article](https://towardsdatascience.com/a-detailed-guide-to-pytorchs-nn-transformer-module-c80afbc9ffb1)
+- understood template code and modified to work with the trained CNN data
+- adjusted dataloader
+- train 2/3 different transformers on CNN output (33 h of training)
+- with transformer and seq_len 16 we are way better than guessing, accuracy around 62 %

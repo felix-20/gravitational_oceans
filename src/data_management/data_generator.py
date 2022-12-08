@@ -64,7 +64,7 @@ class GODataGenerator:
                 'tref': self.writer_kwargs_cw['tstart'],
                 'F0': 100.0,
                 'F1': -1e-9,
-                'h0': 1e-22, #sqrtSX / 20.0,
+                'h0': sqrtSX / 20.0,
                 'cosi': 1,
                 'psi': 0.0,
                 'phi': 0.0,

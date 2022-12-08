@@ -1,10 +1,12 @@
-import numpy as np
 import gzip
-from tqdm import tqdm
-from os import path, makedirs, listdir
+from os import listdir, makedirs, path
 
-from src.ai_nets.pretrained_efficientnet import dataload, preprocess, get_capped_model
-from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_MODEL_FOLDER, print_red
+import numpy as np
+from tqdm import tqdm
+
+from src.ai_nets.pretrained_efficientnet import dataload, get_capped_model, preprocess
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_TEST_FOLDER, print_red
+
 
 def predict(cnn, paths_to_predict_files: str, multiplier: int = 1):
     predict_folder = path.join(PATH_TO_CACHE_FOLDER, 'pre_predicted')
@@ -26,6 +28,6 @@ if __name__ == '__main__':
 
     files = [path.join(no_cw_folder, file_name) for file_name in listdir(no_cw_folder)]
     files += [path.join(cw_folder, file_name) for file_name in listdir(cw_folder)]
-    
+
     cnn = get_capped_model(path.join(PATH_TO_MODEL_FOLDER, 'model_best.pth'))
     predict(cnn, files)

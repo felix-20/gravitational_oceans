@@ -16,7 +16,7 @@ class GOHDF5Sorter:
         self.label_mapping = {}
 
         self.sorted_by_frequency_path = path.join(PATH_TO_CACHE_FOLDER, 'sorted_by_frequency.npy')
-    
+
     def get_label_mapping(self):
 
         # if dict is filled -> return it

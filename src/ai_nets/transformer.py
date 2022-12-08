@@ -1,19 +1,18 @@
 # https://towardsdatascience.com/a-detailed-guide-to-pytorchs-nn-transformer-module-c80afbc9ffb1
 
+import math
+from datetime import datetime
+from os import path
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
-
-from os import path
-import math
-import numpy as np
-import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
 from tqdm import tqdm
 
-from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER
 from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
-
+from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 # parameters
 sequence_length = 32
@@ -24,25 +23,25 @@ epochs = 1
 class PositionalEncoding(nn.Module):
     def __init__(self, dim_model, dropout_p, max_len):
         super().__init__()
-        
+
         # Info
         self.dropout = nn.Dropout(dropout_p)
-        
+
         # Encoding - From formula
         pos_encoding = torch.zeros(max_len, dim_model)
         positions_list = torch.arange(0, max_len, dtype=torch.float).view(-1, 1) # 0, 1, 2, 3, 4, 5
         division_term = torch.exp(torch.arange(0, dim_model, 2).float() * (-math.log(10000.0)) / dim_model) # 1000^(2i/dim_model)
-        
+
         # PE(pos, 2i) = sin(pos/1000^(2i/dim_model))
         pos_encoding[:, 0::2] = torch.sin(positions_list * division_term)
-        
+
         # PE(pos, 2i + 1) = cos(pos/1000^(2i/dim_model))
         pos_encoding[:, 1::2] = torch.cos(positions_list * division_term)
-        
+
         # Saving buffer (same as parameter without gradients needed)
         pos_encoding = pos_encoding.unsqueeze(0).transpose(0, 1)
-        self.register_buffer("pos_encoding",pos_encoding)
-        
+        self.register_buffer('pos_encoding',pos_encoding)
+
     def forward(self, token_embedding: torch.tensor) -> torch.tensor:
         # Residual connection + pos encoding
         return self.dropout(token_embedding + self.pos_encoding[:token_embedding.size(0), :])
@@ -66,7 +65,7 @@ class GOTransformer(nn.Module):
         super().__init__()
 
         # INFO
-        self.model_type = "Transformer"
+        self.model_type = 'Transformer'
         self.dim_model = dim_model
 
         # LAYERS
@@ -82,7 +81,7 @@ class GOTransformer(nn.Module):
             dropout=dropout_p,
         )
         self.linear = nn.Linear(dim_model, num_tokens)
-        
+
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         # Src size must be (batch_size, src sequence length)
         # Tgt size must be (batch_size, tgt sequence length)
@@ -92,7 +91,7 @@ class GOTransformer(nn.Module):
         tgt = self.embed_token(tgt)
         src = self.positional_encoder(src)
         tgt = self.positional_encoder(tgt)
-        
+
         # We could use the parameter batch_first=True, but our KDL version doesn't support it yet, so we permute
         # to obtain size (sequence length, batch_size, dim_model),
         src = src.permute(1,0,2)
@@ -101,23 +100,23 @@ class GOTransformer(nn.Module):
         # Transformer blocks - Out size = (sequence length, batch_size, num_tokens)
         transformer_out = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
         linear_out = self.linear(transformer_out)
-        
+
         return linear_out
-      
+
     def get_tgt_mask(self, size) -> torch.tensor:
         # Generates a squeare matrix where the each row allows one word more to be seen
         mask = torch.tril(torch.ones(size, size) == 1) # Lower triangular matrix
         mask = mask.float()
         mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf
         mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
-        
+
         return mask
-    
+
     def create_pad_mask(self, matrix: torch.tensor, pad_token: int) -> torch.tensor:
         # If matrix = [1,2,3,0,0,0] where pad_token=0, the result mask is
         # [False, False, False, True, True, True]
         return (matrix == pad_token)
-    
+
     def embed_token(self, token):
         return self.embedding(token) * math.sqrt(self.dim_model)
 
@@ -128,7 +127,7 @@ def add_sequence_tokens(batch):
         return torch.stack([torch.concat((SOS_TOKEN_EMBEDDED, item, EOS_TOKEN_EMBEDDED)) for item in batch])
     else:
         return batch
-        
+
 def features_to_embedding_vectors(features):
     # 192, 12, 115 -> 5, 52992
     split_and_flattened = torch.reshape(features, (sequence_length, -1))
@@ -139,7 +138,7 @@ def features_to_embedding_vectors(features):
 def train_loop(model, opt, loss_fn, dataloader):
     model.train()
     total_loss = 0
-    
+
     for x, y in dataloader:
         # convert from a multi-dimensional feature vector to a simple embedding-vector
         x = torch.stack([features_to_embedding_vectors(item) for item in x])
@@ -154,7 +153,7 @@ def train_loop(model, opt, loss_fn, dataloader):
         # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
         y_input = y[:,:-1]
         y_expected = y[:,1:]
-        
+
         # Get mask to mask out the next words
         sequence_length = y_input.size(1)
         tgt_mask = model.get_tgt_mask(sequence_length).to(device)
@@ -169,9 +168,9 @@ def train_loop(model, opt, loss_fn, dataloader):
         opt.zero_grad()
         loss.backward(retain_graph=True)
         opt.step()
-    
+
         total_loss += loss.detach().item()
-        
+
     return total_loss / len(dataloader)
 
 def validation_loop(model, loss_fn, dataloader, epoch: int):
@@ -180,7 +179,7 @@ def validation_loop(model, loss_fn, dataloader, epoch: int):
     total_accuracy_complete = 0
     total_accuracy_start = 0
     c_time = 0
-    
+
     with torch.no_grad():
         for x, y in dataloader:
             # convert from a multi-dimensional feature vector to a simple embedding-vector
@@ -196,7 +195,7 @@ def validation_loop(model, loss_fn, dataloader, epoch: int):
             # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
             y_input = y[:,:-1]
             y_expected = y[:,1:]
-            
+
             # Get mask to mask out the next words
             sequence_length = y_input.size(1)
             tgt_mask = model.get_tgt_mask(sequence_length).to(device)
@@ -223,10 +222,10 @@ def validation_loop(model, loss_fn, dataloader, epoch: int):
             writer.add_scalar(f'total_acc_start/epoch_{epoch}', correct_start / sequence_length_dec, c_time)
 
             # Permute pred to have batch size first again
-            pred = pred.permute(1, 2, 0)      
+            pred = pred.permute(1, 2, 0)
             loss = loss_fn(pred, y_expected)
             total_loss += loss.detach().item()
-        
+
             c_time += 1
 
     total_loss /= len(dataloader)
@@ -236,13 +235,13 @@ def validation_loop(model, loss_fn, dataloader, epoch: int):
     return total_loss, total_accuracy_complete, total_accuracy_start
 
 def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
-    print_green("Training and validating model")
+    print_green('Training and validating model')
     max_accuracy_start = 0.0
     epoch_threshold = 20
     for epoch in tqdm(range(epochs), 'Epochs'):
-        
+
         train_loss = train_loop(model, opt, loss_fn, train_dataloader)
-        
+
         validation_loss, acc_complete, acc_start = validation_loop(model, loss_fn, val_dataloader, epoch)
 
         writer.add_scalar('loss/training', train_loss, epoch)
@@ -257,14 +256,14 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
 
 if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)
-    
+
     dataset = GOBetterCRNNDataset(sequence_length=sequence_length)
     train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     print(f'Using device {device}')
 

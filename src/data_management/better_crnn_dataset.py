@@ -1,16 +1,15 @@
+import gzip
 from os import listdir, makedirs, path
-from random import shuffle
+from random import randint, shuffle
 
 import numpy as np
 import torch
 from tqdm import tqdm
-import gzip
-from random import randint
 
 from src.ai_nets.pretrained_efficientnet import dataload, normalize, preprocess
 from src.data_management.dataset import GODataset
-from src.helper.utils import PATH_TO_CACHE_FOLDER, print_green, print_blue, print_red, print_yellow
 from src.data_management.hdf5_sorter import GOHDF5Sorter
+from src.helper.utils import PATH_TO_CACHE_FOLDER, print_blue, print_green, print_red, print_yellow
 
 
 class GOBetterCRNNDataset(GODataset):
@@ -43,11 +42,11 @@ class GOBetterCRNNDataset(GODataset):
                 data = np.load(npy_file)
                 cnn_predictions += [data[randint(0, len(data) - 1)]]
             labels += [int(label)]
-        
+
         result_tensor = torch.tensor(np.concatenate(cnn_predictions, axis=2))
-        
+
         return (result_tensor, torch.tensor(labels, dtype=torch.int32))
-        
+
 
 if __name__ == '__main__':
     item = GOBetterCRNNDataset().__getitem__(0)
