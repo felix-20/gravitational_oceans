@@ -33,6 +33,10 @@ if not os.path.isdir(PATH_TO_LOG_FOLDER):
 if not os.path.isdir(PATH_TO_CACHE_FOLDER):
     os.makedirs(PATH_TO_CACHE_FOLDER)
 
+if 'IS_CHARLIE' in os.environ:
+    print('We are on Charlie')
+    os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def print_red(*text):
     print(f'{bcolors.FAIL}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
