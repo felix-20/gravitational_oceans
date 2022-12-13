@@ -5,21 +5,12 @@ import torch.nn as nn
 
 from os import path
 import math
-import numpy as np
-import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 from tqdm import tqdm
 
 from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER
 from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
-
-
-# parameters
-sequence_length = 32
-batch_size = 16
-dim_model = 2048 # (closest power of two to shape of data)
-epochs = 1
 
 class PositionalEncoding(nn.Module):
     def __init__(self, dim_model, dropout_p, max_len):
@@ -256,6 +247,12 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
 
 
 if __name__ == '__main__':
+    # parameters
+    sequence_length = 32
+    batch_size = 8
+    dim_model = 4096 # (closest power of two to shape of data)
+    epochs = 100
+
     torch.autograd.set_detect_anomaly(True)
     
     dataset = GOBetterCRNNDataset(sequence_length=sequence_length)
