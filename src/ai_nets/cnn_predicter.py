@@ -8,6 +8,7 @@ from src.ai_nets.pretrained_efficientnet import dataload, get_capped_model, prep
 from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_TEST_FOLDER, print_red
 
 
+
 def predict(cnn, paths_to_predict_files: str, multiplier: int = 1):
     predict_folder = path.join(PATH_TO_CACHE_FOLDER, 'pre_predicted')
     if not path.isdir(predict_folder):
@@ -21,6 +22,7 @@ def predict(cnn, paths_to_predict_files: str, multiplier: int = 1):
         file_name = path.basename(file_path)[:-5]
         with gzip.open(path.join(predict_folder, file_name) + '.npy.gz', 'wb') as gz_file:
             np.save(gz_file, out.cpu().detach().numpy())
+
 
 if __name__ == '__main__':
     no_cw_folder = path.join(PATH_TO_TEST_FOLDER, 'no_cw_hdf5')

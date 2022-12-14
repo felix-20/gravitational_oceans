@@ -195,34 +195,34 @@ def validation_loop(model, loss_fn, dataloader, epoch: int):
             # Standard training except we pass in y_input and src_mask
             pred = model(x, y_input, tgt_mask)
 
-            # get accuracy
-            _, max_index = torch.max(pred, dim=2)
-            predicted = max_index.flatten()
-            expected = y_expected.flatten()
-            correct_complete = 0
-            correct_start = 0
-            sequence_length_dec = sequence_length - 1
-            for i in range(sequence_length_dec):
-                if predicted[i] == expected[i]:
-                    correct_complete += 1
-                    if correct_start == i:
-                        correct_start += 1
-            total_accuracy_complete += correct_complete / sequence_length_dec
-            total_accuracy_start += correct_start / sequence_length_dec
-
-            writer.add_scalar(f'total_acc/epoch_{epoch}', correct_complete / sequence_length_dec, c_time)
-            writer.add_scalar(f'total_acc_start/epoch_{epoch}', correct_start / sequence_length_dec, c_time)
-
             # Permute pred to have batch size first again
             pred = pred.permute(1, 2, 0)
+
+            # get accuracy
+            _, max_index = torch.max(pred, dim=1)
+            sequence_length_dec = sequence_length - 1
+            for i in range(batch_size):
+                correct_complete = 0
+                correct_start = 0
+                for j in range(sequence_length_dec):
+                    if max_index[i][j] == y_expected[i][j]:
+                        correct_complete += 1
+                        if correct_start == j:
+                            correct_start += 1
+                total_accuracy_complete += correct_complete / sequence_length_dec
+                total_accuracy_start += correct_start / sequence_length_dec
+
+                writer.add_scalar(f'total_acc/epoch_{epoch}', correct_complete / sequence_length_dec, c_time)
+                writer.add_scalar(f'total_acc_start/epoch_{epoch}', correct_start / sequence_length_dec, c_time)
+
+                c_time += 1
+
             loss = loss_fn(pred, y_expected)
             total_loss += loss.detach().item()
 
-            c_time += 1
-
     total_loss /= len(dataloader)
-    total_accuracy_complete /= len(dataloader)
-    total_accuracy_start /= len(dataloader)
+    total_accuracy_complete /= len(dataloader) * batch_size
+    total_accuracy_start /= len(dataloader) * batch_size
 
     return total_loss, total_accuracy_complete, total_accuracy_start
 
@@ -244,6 +244,41 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
         if epoch > epoch_threshold and acc_start > max_accuracy_start:
             torch.save(model, f'{PATH_TO_MODEL_FOLDER}/transformer_{epoch}_{acc_start}_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
             max_accuracy_start = acc_start
+
+
+def predict(model, x : list, y : list):
+    # convert from a multi-dimensional feature vector to a simple embedding-vector
+    x = torch.stack([features_to_embedding_vectors(item) for item in x])
+
+    x = x.to(device)
+    y = y.type(torch.long).to(device)
+
+    # prepend and append the sequence tokens
+    x = add_sequence_tokens(x)
+    y = add_sequence_tokens(y)
+
+    # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
+    y_input = y[:,:-1]
+    y_expected = y[:,1:]
+    
+    # Get mask to mask out the next words
+    sequence_length = y_input.size(1)
+    tgt_mask = model.get_tgt_mask(sequence_length).to(device)
+
+    # Standard training except we pass in y_input and src_mask
+    pred = model(x, y_input, tgt_mask)
+
+    # Permute pred to have batch size first again
+    pred = pred.permute(1, 2, 0)
+
+    # get accuracy
+    _, max_index = torch.max(pred, dim=1)
+    for i in range(batch_size):
+        for j in range(sequence_length):
+            if not max_index[i][j] in (0, 1):
+                max_index[i][j] = 0.5
+
+    return max_index
 
 
 if __name__ == '__main__':
