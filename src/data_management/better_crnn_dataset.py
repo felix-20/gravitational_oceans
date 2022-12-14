@@ -27,6 +27,8 @@ class GOBetterCRNNDataset(GODataset):
 
         self.sorter.get_sorted_frequencies()
 
+        self.last_accessed_files = []
+
         print_blue(self.__getitem__(0)[0].shape)
 
     def __len__(self) -> int:
@@ -34,6 +36,7 @@ class GOBetterCRNNDataset(GODataset):
 
     def __getitem__(self, idx) -> dict:
         files_with_labels = self.sorter.get_sorted_frequencies()[idx : idx+self.sequence_length]
+        self.last_accessed_files += [[file_path for file_path, _ in files_with_labels]]
 
         cnn_predictions = []
         labels = []
@@ -47,7 +50,12 @@ class GOBetterCRNNDataset(GODataset):
         result_tensor = torch.tensor(np.concatenate(cnn_predictions, axis=2))
         
         return (result_tensor, torch.tensor(labels, dtype=torch.int32))
-        
+    
+    def get_last_accessed_files(self):
+        return self.last_accessed_files
+
+    def reset_last_accessed_files(self):
+        self.last_accessed_files = []
 
 if __name__ == '__main__':
     item = GOBetterCRNNDataset().__getitem__(0)
