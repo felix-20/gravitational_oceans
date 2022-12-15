@@ -12,6 +12,7 @@ from tqdm import tqdm
 from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER
 from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
 
+
 class PositionalEncoding(nn.Module):
     def __init__(self, dim_model, dropout_p, max_len):
         super().__init__()
@@ -112,77 +113,106 @@ class GOTransformer(nn.Module):
     def embed_token(self, token):
         return self.embedding(token) * math.sqrt(self.dim_model)
 
-def add_sequence_tokens(batch):
-    if isinstance(batch[0], (torch.LongTensor, torch.cuda.LongTensor)):
-        return torch.stack([torch.concat((SOS_TOKEN, item, EOS_TOKEN)) for item in batch])
-    elif isinstance(batch[0], (torch.FloatTensor, torch.cuda.FloatTensor)):
-        return torch.stack([torch.concat((SOS_TOKEN_EMBEDDED, item, EOS_TOKEN_EMBEDDED)) for item in batch])
-    else:
-        return batch
-        
-def features_to_embedding_vectors(features):
-    # 192, 12, 115 -> 5, 52992
-    split_and_flattened = torch.reshape(features, (sequence_length, -1))
-    # 5, 52992 -> 5, 512
-    embedded = split_and_flattened[:, :dim_model]
-    return embedded * math.sqrt(dim_model)
 
-def train_loop(model, opt, loss_fn, dataloader):
-    model.train()
-    total_loss = 0
+class GOTransformerTrainer:
+
+    def __init__(self, 
+                 sequence_length: int = 32,
+                 batch_size: int = 8,
+                 dim_model: int = 4096,
+                 epochs: int = 100) -> None:
+        # parameters
+        self.sequence_length = sequence_length
+        self.batch_size = batch_size
+        self.dim_model = dim_model # (closest power of two to shape of data)
+        self.epochs = epochs
+
+        self.SOS_TOKEN = None
+        self.EOS_TOKEN = None
+        self.SOS_TOKEN_EMBEDDED = None
+        self.EOS_TOKEN_EMBEDDED = None
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'transformer_{str(datetime.now())}'))
+
+    def train(self):
+        torch.autograd.set_detect_anomaly(True)
     
-    for x, y in dataloader:
-        # convert from a multi-dimensional feature vector to a simple embedding-vector
-        x = torch.stack([features_to_embedding_vectors(item) for item in x])
+        dataset = GOBetterCRNNDataset(sequence_length=self.sequence_length)
+        train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
-        x = x.to(device)
-        y = y.type(torch.long).to(device)
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
 
-        # prepend and append the sequence tokens
-        x = add_sequence_tokens(x)
-        y = add_sequence_tokens(y)
+        print(f'Using device {self.device}')
 
-        # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
-        y_input = y[:,:-1]
-        y_expected = y[:,1:]
+        model_params = {
+            'num_tokens': 4,
+            'dim_model': self.dim_model,
+            'num_heads': 2,
+            'num_encoder_layers': 3,
+            'num_decoder_layers': 3,
+            'dropout_p': 0.1
+        }
+
+        self.build(model_params)
+
+        model = GOTransformer(**model_params).to(self.device)
+
+        opt = torch.optim.SGD(model.parameters(), lr=0.01)
+        loss_fn = nn.CrossEntropyLoss()
+
+        self.writer.add_text('hyperparameters/batch_size', str(self.batch_size))
+        self.writer.add_text('hyperparameters/sequence_length', str(self.sequence_length))
+        self.writer.add_text('hyperparameters/dim_model', str(self.dim_model))
+        self.writer.add_text('hyperparameters/epochs', str(self.epochs))
+
+        time_before = datetime.now()
+        self.fit(model, opt, loss_fn, train_loader, val_loader, self.epochs, self.writer)
+        time_after = datetime.now()
+        time_difference = time_after - time_before
+        print(str(time_difference))
+        self.writer.add_text('metrics/training_time', str(time_difference))
+
+    def build(self, model_params):
+        model = GOTransformer(**model_params).to(self.device)
+
+        self.SOS_TOKEN = torch.tensor([2]).to(self.device)
+        self.EOS_TOKEN = torch.tensor([3]).to(self.device)
+        self.SOS_TOKEN_EMBEDDED = model.embed_token(self.SOS_TOKEN)
+        self.EOS_TOKEN_EMBEDDED = model.embed_token(self.EOS_TOKEN)
+
+
+    def add_sequence_tokens(self, batch):
+        if isinstance(batch[0], (torch.LongTensor, torch.cuda.LongTensor)):
+            return torch.stack([torch.concat((self.SOS_TOKEN, item, self.EOS_TOKEN)) for item in batch])
+        elif isinstance(batch[0], (torch.FloatTensor, torch.cuda.FloatTensor)):
+            return torch.stack([torch.concat((self.SOS_TOKEN_EMBEDDED, item, self.EOS_TOKEN_EMBEDDED)) for item in batch])
+        else:
+            return batch
+            
+    def features_to_embedding_vectors(self, features):
+        # 192, 12, 115 -> 5, 52992
+        split_and_flattened = torch.reshape(features, (self.sequence_length, -1))
+        # 5, 52992 -> 5, 512
+        embedded = split_and_flattened[:, :self.dim_model]
+        return embedded * math.sqrt(self.dim_model)
+
+    def train_loop(self, model, opt, loss_fn, dataloader):
+        model.train()
+        total_loss = 0
         
-        # Get mask to mask out the next words
-        sequence_length = y_input.size(1)
-        tgt_mask = model.get_tgt_mask(sequence_length).to(device)
-
-        # Standard training except we pass in y_input and tgt_mask
-        pred = model(x, y_input, tgt_mask)
-
-        # Permute pred to have batch size first again
-        pred = pred.permute(1, 2, 0)
-        loss = loss_fn(pred, y_expected)
-
-        opt.zero_grad()
-        loss.backward(retain_graph=True)
-        opt.step()
-    
-        total_loss += loss.detach().item()
-        
-    return total_loss / len(dataloader)
-
-def validation_loop(model, loss_fn, dataloader, epoch: int):
-    model.eval()
-    total_loss = 0
-    total_accuracy_complete = 0
-    total_accuracy_start = 0
-    c_time = 0
-    
-    with torch.no_grad():
         for x, y in dataloader:
             # convert from a multi-dimensional feature vector to a simple embedding-vector
-            x = torch.stack([features_to_embedding_vectors(item) for item in x])
+            x = torch.stack([self.features_to_embedding_vectors(item) for item in x])
 
-            x = x.to(device)
-            y = y.type(torch.long).to(device)
+            x = x.to(self.device)
+            y = y.type(torch.long).to(self.device)
 
             # prepend and append the sequence tokens
-            x = add_sequence_tokens(x)
-            y = add_sequence_tokens(y)
+            x = self.add_sequence_tokens(x)
+            y = self.add_sequence_tokens(y)
 
             # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
             y_input = y[:,:-1]
@@ -190,146 +220,138 @@ def validation_loop(model, loss_fn, dataloader, epoch: int):
             
             # Get mask to mask out the next words
             sequence_length = y_input.size(1)
-            tgt_mask = model.get_tgt_mask(sequence_length).to(device)
+            tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
 
-            # Standard training except we pass in y_input and src_mask
+            # Standard training except we pass in y_input and tgt_mask
             pred = model(x, y_input, tgt_mask)
 
             # Permute pred to have batch size first again
             pred = pred.permute(1, 2, 0)
-
-            # get accuracy
-            _, max_index = torch.max(pred, dim=1)
-            sequence_length_dec = sequence_length - 1
-            for i in range(batch_size):
-                correct_complete = 0
-                correct_start = 0
-                for j in range(sequence_length_dec):
-                    if max_index[i][j] == y_expected[i][j]:
-                        correct_complete += 1
-                        if correct_start == j:
-                            correct_start += 1
-                total_accuracy_complete += correct_complete / sequence_length_dec
-                total_accuracy_start += correct_start / sequence_length_dec
-
-                writer.add_scalar(f'total_acc/epoch_{epoch}', correct_complete / sequence_length_dec, c_time)
-                writer.add_scalar(f'total_acc_start/epoch_{epoch}', correct_start / sequence_length_dec, c_time)
-
-                c_time += 1
-
             loss = loss_fn(pred, y_expected)
+
+            opt.zero_grad()
+            loss.backward(retain_graph=True)
+            opt.step()
+        
             total_loss += loss.detach().item()
+            
+        return total_loss / len(dataloader)
 
-    total_loss /= len(dataloader)
-    total_accuracy_complete /= len(dataloader) * batch_size
-    total_accuracy_start /= len(dataloader) * batch_size
-
-    return total_loss, total_accuracy_complete, total_accuracy_start
-
-def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
-    print_green("Training and validating model")
-    max_accuracy_start = 0.0
-    epoch_threshold = 20
-    for epoch in tqdm(range(epochs), 'Epochs'):
+    def validation_loop(self, model, loss_fn, dataloader, epoch: int):
+        model.eval()
+        total_loss = 0
+        total_accuracy_complete = 0
+        total_accuracy_start = 0
+        c_time = 0
         
-        train_loss = train_loop(model, opt, loss_fn, train_dataloader)
+        with torch.no_grad():
+            for x, y in dataloader:
+                # convert from a multi-dimensional feature vector to a simple embedding-vector
+                x = torch.stack([self.features_to_embedding_vectors(item) for item in x])
+
+                x = x.to(self.device)
+                y = y.type(torch.long).to(self.device)
+
+                # prepend and append the sequence tokens
+                x = self.add_sequence_tokens(x)
+                y = self.add_sequence_tokens(y)
+
+                # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
+                y_input = y[:,:-1]
+                y_expected = y[:,1:]
+                
+                # Get mask to mask out the next words
+                sequence_length = y_input.size(1)
+                tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
+
+                # Standard training except we pass in y_input and src_mask
+                pred = model(x, y_input, tgt_mask)
+
+                # Permute pred to have batch size first again
+                pred = pred.permute(1, 2, 0)
+
+                # get accuracy
+                _, max_index = torch.max(pred, dim=1)
+                sequence_length_dec = sequence_length - 1
+                for i in range(self.batch_size):
+                    correct_complete = 0
+                    correct_start = 0
+                    for j in range(sequence_length_dec):
+                        if max_index[i][j] == y_expected[i][j]:
+                            correct_complete += 1
+                            if correct_start == j:
+                                correct_start += 1
+                    total_accuracy_complete += correct_complete / sequence_length_dec
+                    total_accuracy_start += correct_start / sequence_length_dec
+
+                    self.writer.add_scalar(f'total_acc/epoch_{epoch}', correct_complete / sequence_length_dec, c_time)
+                    self.writer.add_scalar(f'total_acc_start/epoch_{epoch}', correct_start / sequence_length_dec, c_time)
+
+                    c_time += 1
+
+                loss = loss_fn(pred, y_expected)
+                total_loss += loss.detach().item()
+
+        total_loss /= len(dataloader)
+        total_accuracy_complete /= len(dataloader) * self.batch_size
+        total_accuracy_start /= len(dataloader) * self.batch_size
+
+        return total_loss, total_accuracy_complete, total_accuracy_start
+
+    def fit(self, model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
+        print_green("Training and validating model")
+        max_accuracy_start = 0.0
+        epoch_threshold = 20
+        for epoch in tqdm(range(epochs), 'Epochs'):
+            
+            train_loss = self.train_loop(model, opt, loss_fn, train_dataloader)
+            
+            validation_loss, acc_complete, acc_start = self.validation_loop(model, loss_fn, val_dataloader, epoch)
+
+            writer.add_scalar('loss/training', train_loss, epoch)
+            writer.add_scalar('loss/validation', validation_loss, epoch)
+            writer.add_scalar('accuracy/complete', acc_complete, epoch)
+            writer.add_scalar('accuracy/start', acc_start, epoch)
+
+            if epoch > epoch_threshold and acc_start > max_accuracy_start:
+                torch.save(model, f'{PATH_TO_MODEL_FOLDER}/transformer_{epoch}_{acc_start}_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
+                max_accuracy_start = acc_start
+
+
+    def predict(self, model, x : list, y : list):
+        # convert from a multi-dimensional feature vector to a simple embedding-vector
+        x = torch.stack([self.features_to_embedding_vectors(item) for item in x])
+
+        x = x.to(self.device)
+        y = y.type(torch.long).to(self.device)
+
+        # prepend and append the sequence tokens
+        x = self.add_sequence_tokens(x)
+        y = self.add_sequence_tokens(y)
+
+        # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
+        y_input = y[:,:-1]
+        y_expected = y[:,1:]
         
-        validation_loss, acc_complete, acc_start = validation_loop(model, loss_fn, val_dataloader, epoch)
+        # Get mask to mask out the next words
+        sequence_length = y_input.size(1)
+        tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
 
-        writer.add_scalar('loss/training', train_loss, epoch)
-        writer.add_scalar('loss/validation', validation_loss, epoch)
-        writer.add_scalar('accuracy/complete', acc_complete, epoch)
-        writer.add_scalar('accuracy/start', acc_start, epoch)
+        # Standard training except we pass in y_input and src_mask
+        pred = model(x, y_input, tgt_mask)
 
-        if epoch > epoch_threshold and acc_start > max_accuracy_start:
-            torch.save(model, f'{PATH_TO_MODEL_FOLDER}/transformer_{epoch}_{acc_start}_{datetime.now().strftime("%Y-%m-%d_%H:%M")}.pt')
-            max_accuracy_start = acc_start
+        # Permute pred to have batch size first again
+        pred = pred.permute(1, 2, 0)
 
+        # get accuracy
+        _, max_index = torch.max(pred, dim=1)
+        for sequence in max_index:
+            for j in range(sequence_length):
+                if not sequence[j] in (0, 1):
+                    sequence[j] = 0.5
 
-def predict(model, x : list, y : list):
-    # convert from a multi-dimensional feature vector to a simple embedding-vector
-    x = torch.stack([features_to_embedding_vectors(item) for item in x])
-
-    x = x.to(device)
-    y = y.type(torch.long).to(device)
-
-    # prepend and append the sequence tokens
-    x = add_sequence_tokens(x)
-    y = add_sequence_tokens(y)
-
-    # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
-    y_input = y[:,:-1]
-    y_expected = y[:,1:]
-    
-    # Get mask to mask out the next words
-    sequence_length = y_input.size(1)
-    tgt_mask = model.get_tgt_mask(sequence_length).to(device)
-
-    # Standard training except we pass in y_input and src_mask
-    pred = model(x, y_input, tgt_mask)
-
-    # Permute pred to have batch size first again
-    pred = pred.permute(1, 2, 0)
-
-    # get accuracy
-    _, max_index = torch.max(pred, dim=1)
-    for i in range(batch_size):
-        for j in range(sequence_length):
-            if not max_index[i][j] in (0, 1):
-                max_index[i][j] = 0.5
-
-    return max_index
+        return max_index
 
 
 if __name__ == '__main__':
-    # parameters
-    sequence_length = 32
-    batch_size = 8
-    dim_model = 4096 # (closest power of two to shape of data)
-    epochs = 100
-
-    torch.autograd.set_detect_anomaly(True)
-    
-    dataset = GOBetterCRNNDataset(sequence_length=sequence_length)
-    train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
-
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True)
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    print(f'Using device {device}')
-
-    model_params = {
-        'num_tokens': 4,
-        'dim_model': dim_model,
-        'num_heads': 2,
-        'num_encoder_layers': 3,
-        'num_decoder_layers': 3,
-        'dropout_p': 0.1
-    }
-
-    model = GOTransformer(**model_params).to(device)
-
-    SOS_TOKEN = torch.tensor([2]).to(device)
-    EOS_TOKEN = torch.tensor([3]).to(device)
-    SOS_TOKEN_EMBEDDED = model.embed_token(SOS_TOKEN)
-    EOS_TOKEN_EMBEDDED = model.embed_token(EOS_TOKEN)
-
-    model = GOTransformer(**model_params).to(device)
-
-    opt = torch.optim.SGD(model.parameters(), lr=0.01)
-    loss_fn = nn.CrossEntropyLoss()
-
-    writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'transformer_{str(datetime.now())}'))
-    writer.add_text('hyperparameters/batch_size', str(batch_size))
-    writer.add_text('hyperparameters/sequence_length', str(sequence_length))
-    writer.add_text('hyperparameters/dim_model', str(dim_model))
-    writer.add_text('hyperparameters/epochs', str(epochs))
-
-    time_before = datetime.now()
-    fit(model, opt, loss_fn, train_loader, val_loader, epochs, writer)
-    time_after = datetime.now()
-    time_difference = time_after - time_before
-    print(str(time_difference))
-    writer.add_text('metrics/training_time', str(time_difference))
+    GOTransformerTrainer().train()
