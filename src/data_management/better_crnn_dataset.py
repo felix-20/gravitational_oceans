@@ -29,6 +29,7 @@ class GOBetterCRNNDataset(GODataset):
         self.last_accessed_files = []
 
         print_blue(self.__getitem__(0)[0].shape)
+        self.reset_last_accessed_files()
 
     def __len__(self) -> int:
         return len(self.npy_files) - self.sequence_length + 1
