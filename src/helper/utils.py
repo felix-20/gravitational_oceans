@@ -20,6 +20,7 @@ PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
 PATH_TO_MODEL_FOLDER = os.path.join(os.getcwd(), 'models_saved')
 PATH_TO_LOG_FOLDER = os.path.join(os.getcwd(), 'logs')
 PATH_TO_CACHE_FOLDER = os.path.join(os.getcwd(), 'cache')
+PATH_TO_LABEL_FILE = os.path.join(os.getcwd(), 'train_labels.csv')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):

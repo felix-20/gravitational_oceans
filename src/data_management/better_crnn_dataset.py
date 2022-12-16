@@ -22,7 +22,7 @@ class GOBetterCRNNDataset(GODataset):
 
         # npy-files are prepredicted by the best possible CNN
         self.npy_files = listdir(data_folder)
-        self.sorter = GOHDF5Sorter('train_labels.csv')
+        self.sorter = GOHDF5Sorter()
 
         self.sorter.get_sorted_frequencies()
 
