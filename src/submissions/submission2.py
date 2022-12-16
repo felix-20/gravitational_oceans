@@ -4,6 +4,7 @@ import os
 import torch
 import numpy as np
 import csv
+from tqdm import tqdm
 
 #os.chdir('/kaggle/input/go-one/gravitational_oceans')
 
@@ -24,8 +25,7 @@ model_params = {
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-ALL_FILES = [os.path.join(PATH_TO_TEST_FOLDER, 'cw_hdf5', file_name) for file_name in os.listdir(os.path.join(PATH_TO_TEST_FOLDER, 'cw_hdf5'))]
-ALL_FILES += [os.path.join(PATH_TO_TEST_FOLDER, 'no_cw_hdf5', file_name) for file_name in os.listdir(os.path.join(PATH_TO_TEST_FOLDER, 'no_cw_hdf5'))]
+ALL_FILES = [os.path.join(PATH_TO_TEST_FOLDER, file_name) for file_name in os.listdir(PATH_TO_TEST_FOLDER)]
 ALL_FILES += [os.path.join(PATH_TO_TRAIN_FOLDER, file_name) for file_name in os.listdir(PATH_TO_TRAIN_FOLDER)]
 
 if not os.path.isdir(os.path.join(PATH_TO_CACHE_FOLDER, 'pre_predicted')):
@@ -44,7 +44,7 @@ transformer_model.eval()
 
 samples = {}
 
-for x, y in dataloader:
+for x, y in tqdm(dataloader, 'doing inference'):
     predicted_batch = go_trainer.predict(transformer_model, x, y).cpu()
     # cheaty
     target_batch = dataset.get_last_accessed_files()
