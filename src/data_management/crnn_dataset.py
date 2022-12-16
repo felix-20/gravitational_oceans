@@ -5,12 +5,12 @@ import torch
 from tqdm import tqdm
 
 from src.data_management.dataset import GODataset
-from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
+from src.helper.utils import PATH_TO_TRAIN_FOLDER, print_green
 
 
 class GOCRNNDataset(GODataset):
 
-    def __init__(self, data_folder: str = PATH_TO_TEST_FOLDER, sequence_length: int = 5, save_folder: str = PATH_TO_TEST_FOLDER, transform=None):
+    def __init__(self, data_folder: str = PATH_TO_TRAIN_FOLDER, sequence_length: int = 5, save_folder: str = PATH_TO_TRAIN_FOLDER, transform=None):
         print_green('Crunching your data, hang on tight!')
         self.sequence_length = sequence_length
         self.save_folder = save_folder

@@ -271,6 +271,16 @@ class GOTransformerTrainer:
                 pred = pred.permute(1, 2, 0)
 
                 # get accuracy
+
+                _, max_index = torch.max(pred, dim=1)
+                for sequence in max_index:
+                    correct_complete = 0
+                    correct_start = 0
+                    for j in range(sequence_length):
+                        
+                        if not sequence[j] in (0, 1):
+                            sequence[j] = 0.5
+
                 _, max_index = torch.max(pred, dim=1)
                 sequence_length_dec = sequence_length - 1
                 for i in range(self.batch_size):
@@ -354,4 +364,9 @@ class GOTransformerTrainer:
 
 
 if __name__ == '__main__':
-    GOTransformerTrainer().train()
+    GOTransformerTrainer(
+        sequence_length=64,
+        dim_model=2048,
+        epochs=100,
+        batch_size=16
+    ).train()
