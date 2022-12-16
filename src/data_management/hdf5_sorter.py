@@ -5,13 +5,13 @@ import csv
 import numpy as np
 from tqdm import tqdm
 
-from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, open_hdf5_file, print_green
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, PATH_TO_LABEL_FILE, open_hdf5_file, print_green
 
 
 class GOHDF5Sorter:
 
     def __init__(self,
-                 label_file: str,
+                 label_file: str = PATH_TO_LABEL_FILE,
                  train_folder: str = PATH_TO_TRAIN_FOLDER,
                  test_folder: str = PATH_TO_TEST_FOLDER):
         self.label_file = label_file
