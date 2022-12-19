@@ -6,6 +6,8 @@ test_data/*
 EMNIST
 logs/*
 cache/*
+signal/*
+noise/*
 submission.csv
 
 # Byte-compiled / optimized / DLL files

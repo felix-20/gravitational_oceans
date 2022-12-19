@@ -12,3 +12,4 @@ fastai
 colorama
 tensorboard
 timm
+pandas
