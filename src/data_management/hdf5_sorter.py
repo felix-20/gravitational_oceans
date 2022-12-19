@@ -43,7 +43,8 @@ class GOHDF5Sorter:
         assert(len(self.label_mapping) == len(listdir(self.train_folder)))
 
         # set label EOS-Token for test-files
-        for test_file in listdir(self.test_folder):
+        for file_name in listdir(self.test_folder):
+            test_file = path.join(self.test_folder, file_name)
             self.label_mapping[test_file] = 3
         
         return self.label_mapping
@@ -77,7 +78,7 @@ class GOHDF5Sorter:
                 return 0
 
         print('Sorting data by frequency')
-        self.sorted_by_frequency = self.label_mapping.items()
+        self.sorted_by_frequency = list(self.label_mapping.items())
         self.sorted_by_frequency.sort(key=cmp_to_key(_compare_frequencies))
 
         np.save(self.sorted_by_frequency_path, self.sorted_by_frequency)
@@ -86,7 +87,7 @@ class GOHDF5Sorter:
 
     def _preprocess_freq_ranges(self, file_label_mapping):
         result = {}
-        for path, _ in tqdm(file_label_mapping):
+        for path, _ in tqdm(file_label_mapping.items()):
             result[path] = open_hdf5_file(path)['frequencies'][0]
         return result
 
