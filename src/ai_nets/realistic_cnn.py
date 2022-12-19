@@ -1,29 +1,30 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
-import datetime
-import torch
-import timm
-
+from datetime import datetime
 from os import cpu_count, path
-from tqdm import tqdm
-from sklearn.model_selection import KFold
+
+import timm
+import torch
 from sklearn.metrics import roc_auc_score
-from torch.tensorboard import SummaryWriter
+from sklearn.model_selection import KFold
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.dataset.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import get_df_noise, get_df_signal, PATH_TO_LOG_FOLDER
+from src.helper.utils import PATH_TO_LOG_FOLDER, get_df_noise, get_df_signal
+
 
 class GORealisticCNNTrainer(GOTrainer):
-    
-    def __init__(self, 
+
+    def __init__(self,
                  df_noise,
                  df_signal,
                  epochs: int = 5,
                  batch_size: int = 32,
                  dropout: float = 0.25,
-                 max_grad_norm: float = 1.36, 
-                 lr: float = 0.00056, 
+                 max_grad_norm: float = 1.36,
+                 lr: float = 0.00056,
                  n_folds: int = 5,
                  fold: int = 0,
                  one_cycle_pct_start: float = 0.1,
@@ -74,7 +75,7 @@ class GORealisticCNNTrainer(GOTrainer):
             return ret
 
     def train(self):
-        
+
         dl_train, dl_eval = self.get_dl()
 
         model = timm.create_model(self.model, pretrained=True, num_classes=1, in_chans=2, drop_rate=self.dropout).to(self.device)
@@ -95,7 +96,7 @@ class GORealisticCNNTrainer(GOTrainer):
                 optim.step()
                 if scheduler:
                     scheduler.step()
-                
+
                 self.writer.add_scalar(f'epoch_{epoch}/loss', loss.item(), step)
                 self.writer.add_scalar(f'epoch_{epoch}/lr', scheduler.get_last_lr()[0] if scheduler else self.lr, step)
                 self.writer.add_scalar(f'epoch_{epoch}/grad_norm', norm, step)
@@ -105,7 +106,7 @@ class GORealisticCNNTrainer(GOTrainer):
             if auc > max_auc:
                 torch.save(model.state_dict(), f'models/model-f{self.fold}.tph')
                 max_auc = auc
-            
+
             self.writer.add_scalar('val/loss', loss, epoch)
             self.writer.add_scalar('val/auc', auc, epoch)
             self.writer.add_scalar('val/max_auc', max_auc, epoch)
@@ -128,14 +129,14 @@ class GORealisticCNNTrainer(GOTrainer):
                 df_signal_eval = self.df_signal.loc[eval_idx]
 
         ds_train = GORealisticNoiseDataset(
-            len(df_signal_train), 
+            len(df_signal_train),
             df_noise_train,
             df_signal_train,
             is_train=True
         )
 
         ds_eval = GORealisticNoiseDataset(
-            len(df_signal_eval), 
+            len(df_signal_eval),
             df_noise_eval,
             df_signal_eval
         )
@@ -143,7 +144,7 @@ class GORealisticCNNTrainer(GOTrainer):
         dl_train = torch.utils.data.DataLoader(ds_train, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
         dl_eval = torch.utils.data.DataLoader(ds_eval, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
         return dl_train, dl_eval
-    
+
 
 if __name__ == '__main__':
     GORealisticCNNTrainer(get_df_noise(), get_df_signal()).train()

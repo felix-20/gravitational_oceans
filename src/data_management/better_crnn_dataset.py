@@ -50,7 +50,7 @@ class GOBetterCRNNDataset(GODataset):
         result_tensor = torch.tensor(np.concatenate(cnn_predictions, axis=2))
 
         return (result_tensor, torch.tensor(labels, dtype=torch.int32))
-    
+
     def get_last_accessed_files(self):
         return self.last_accessed_files
 

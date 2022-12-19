@@ -1,10 +1,11 @@
+import glob
 import os
 import re
-import pandas as pd
 
 import h5py
 import numpy as np
-import glob
+import pandas as pd
+
 
 class bcolors:
     HEADER = '\033[95m'
