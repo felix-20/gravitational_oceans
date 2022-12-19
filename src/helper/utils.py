@@ -15,12 +15,21 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
-PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
-PATH_TO_MODEL_FOLDER = os.path.join(os.getcwd(), 'models_saved')
-PATH_TO_LOG_FOLDER = os.path.join(os.getcwd(), 'logs')
-PATH_TO_CACHE_FOLDER = os.path.join(os.getcwd(), 'cache')
-PATH_TO_LABEL_FILE = os.path.join(os.getcwd(), 'train_labels.csv')
+if 'KAGGLE_BASE_URL' in os.environ:
+    challenge = 'g2net-detecting-continuous-gravitational-waves'
+    PATH_TO_TEST_FOLDER = os.path.join('/kaggle', 'input', challenge, 'test')
+    PATH_TO_TRAIN_FOLDER = os.path.join('/kaggle', 'input', challenge, 'train')
+    PATH_TO_LABEL_FILE = os.path.join('/kaggle', 'input', challenge, 'train_labels.csv')
+    PATH_TO_MODEL_FOLDER = os.path.join('/kaggle', 'input', 'models')
+    PATH_TO_LOG_FOLDER = os.path.join('/kaggle', 'temp', 'logs')
+    PATH_TO_CACHE_FOLDER = os.path.join('/kaggle', 'working', 'cache')
+else:
+    PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
+    PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
+    PATH_TO_MODEL_FOLDER = os.path.join(os.getcwd(), 'models_saved')
+    PATH_TO_LOG_FOLDER = os.path.join(os.getcwd(), 'logs')
+    PATH_TO_CACHE_FOLDER = os.path.join(os.getcwd(), 'cache')
+    PATH_TO_LABEL_FILE = os.path.join(os.getcwd(), 'train_labels.csv')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
