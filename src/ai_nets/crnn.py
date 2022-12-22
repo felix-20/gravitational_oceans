@@ -17,7 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 from tqdm import tqdm
 
-from src.data_management.crnn_dataset import GOCRNNDataset
+from src.data_management.datasets.crnn_dataset import GOCRNNDataset
 from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 

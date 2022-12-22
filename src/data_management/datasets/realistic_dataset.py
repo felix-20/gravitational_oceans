@@ -15,8 +15,6 @@ from torch.utils.data import Dataset
 from src.helper.utils import get_df_dynamic_noise, get_df_signal
 
 
-
-
 class GORealisticNoiseDataset(Dataset):
     def __init__(self, 
                  size, 
@@ -47,13 +45,8 @@ class GORealisticNoiseDataset(Dataset):
             signal = np.array(Image.open(signal))
             noise = noise + signal_strength * signal
 
-<<<<<<< HEAD:src/data_management/datasets/realistic_dataset.py
         if self.is_train and self.gaussian_noise > 0:
             noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
-=======
-        if self.is_train and 2.0 > 0:
-            noise = noise + np.random.randn(*noise.shape) * 2.0
->>>>>>> 41c241148eba0f3c8d03b6ca9c806a0c672ab424:src/data_management/dataset/realistic_dataset.py
 
         noise = np.clip(noise, 0, 255).astype(np.uint8)
         return self.transforms(noise)
