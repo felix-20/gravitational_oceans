@@ -9,6 +9,8 @@ cache/*
 signal/*
 noise/*
 submission.csv
+tmp/*
+train_labels.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

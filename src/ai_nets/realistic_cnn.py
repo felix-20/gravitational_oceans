@@ -1,13 +1,13 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
 from datetime import datetime
-import torch
-import timm
-
 from os import cpu_count, path
+
+import timm
+import torch
 from tqdm import tqdm
-from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import KFold
 from torch.utils.tensorboard import SummaryWriter
 
 from src.ai_nets.trainer import GOTrainer
@@ -167,7 +167,7 @@ class GORealisticCNNTrainer(GOTrainer):
                 df_signal_eval = self.df_signal.loc[eval_idx]
 
         ds_train = GORealisticNoiseDataset(
-            len(df_signal_train), 
+            len(df_signal_train),
             df_noise_train,
             df_signal_train,
             is_train=True,
@@ -175,7 +175,7 @@ class GORealisticCNNTrainer(GOTrainer):
         )
 
         ds_eval = GORealisticNoiseDataset(
-            len(df_signal_eval), 
+            len(df_signal_eval),
             df_noise_eval,
             df_signal_eval,
             gaussian_noise=self.gaussian_noise
@@ -184,7 +184,7 @@ class GORealisticCNNTrainer(GOTrainer):
         dl_train = torch.utils.data.DataLoader(ds_train, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
         dl_eval = torch.utils.data.DataLoader(ds_eval, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
         return dl_train, dl_eval
-    
+
 
 if __name__ == '__main__':
     GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal()).train()

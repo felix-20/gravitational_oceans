@@ -1,15 +1,16 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
-import re
-import torchvision
-from torch.utils.data import Dataset
 import glob
-import numpy as np
-from PIL import Image
-import torch
-from sklearn.metrics import *
 import os
+import re
+
+import numpy as np
 import pandas as pd
+import torch
+import torchvision
+from PIL import Image
+from sklearn.metrics import *
+from torch.utils.data import Dataset
 
 from src.helper.utils import get_df_dynamic_noise, get_df_signal
 
@@ -46,8 +47,13 @@ class GORealisticNoiseDataset(Dataset):
             signal = np.array(Image.open(signal))
             noise = noise + signal_strength * signal
 
+<<<<<<< HEAD:src/data_management/datasets/realistic_dataset.py
         if self.is_train and self.gaussian_noise > 0:
             noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
+=======
+        if self.is_train and 2.0 > 0:
+            noise = noise + np.random.randn(*noise.shape) * 2.0
+>>>>>>> 41c241148eba0f3c8d03b6ca9c806a0c672ab424:src/data_management/dataset/realistic_dataset.py
 
         noise = np.clip(noise, 0, 255).astype(np.uint8)
         return self.transforms(noise)
@@ -55,13 +61,13 @@ class GORealisticNoiseDataset(Dataset):
 
     def __getitem__(self, index):
         noise_files = self.df_noise.sample().files.values[0]
-        
+
         sig_files = [None, None]
         label = 0
         if np.random.random() < self.positive_rate:
             sig_files = self.df_signal.sample().files.values[0]
             label = 1
-        signal_strength = np.random.uniform(0.02, 0.10)                    
+        signal_strength = np.random.uniform(0.02, 0.10)
         return np.concatenate([self.gen_sample(sig, noise, signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0), label, signal_strength
 
 
@@ -80,7 +86,7 @@ if __name__ == '__main__':
 
 
     ds_eval = GORealisticNoiseDataset(
-        len(df_signal_eval), 
+        len(df_signal_eval),
         df_noise_eval,
         df_signal_eval
     )
