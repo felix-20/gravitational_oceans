@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from src.data_management.dataset import GODataset
+from src.data_management.datasets import GODataset
 from src.helper.utils import PATH_TO_TEST_FOLDER, print_green
 
 

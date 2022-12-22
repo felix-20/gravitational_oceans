@@ -8,7 +8,7 @@ import csv
 #os.chdir('/kaggle/input/go-one/gravitational_oceans')
 
 from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_MODEL_FOLDER, PATH_TO_TRAIN_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_CACHE_FOLDER
-from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
+from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
 import src.ai_nets.cnn_predicter as GOCNNPredictor
 from src.ai_nets.pretrained_efficientnet import get_capped_model
 from src.ai_nets.transformer import GOTransformer, PositionalEncoding, GOTransformerTrainer

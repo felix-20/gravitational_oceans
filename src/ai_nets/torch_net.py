@@ -9,7 +9,7 @@ from efficientnet_pytorch import EfficientNet
 from torch.utils.data import DataLoader
 
 from src.ai_nets.model_test import test
-from src.data_management.dataset import GODataset
+from src.data_management.datasets import GODataset
 from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red
 
 print('finished imports')

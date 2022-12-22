@@ -2,7 +2,7 @@ import torch
 import torchvision.models as models
 from torch.utils.data import DataLoader
 
-from src.data_management.dataset import GODataset
+from src.data_management.datasets import GODataset
 from src.helper.utils import PATH_TO_MODEL_FOLDER, PATH_TO_TEST_FOLDER, print_green
 
 classes = ['no_cw', 'cw']

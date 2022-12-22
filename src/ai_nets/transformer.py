@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
+from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
 from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 

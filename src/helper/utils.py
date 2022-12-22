@@ -23,7 +23,8 @@ PATH_TO_MODEL_FOLDER = os.path.join(os.getcwd(), 'models_saved')
 PATH_TO_LOG_FOLDER = os.path.join(os.getcwd(), 'logs')
 PATH_TO_CACHE_FOLDER = os.path.join(os.getcwd(), 'cache')
 PATH_TO_SIGNAL_FOLDER = os.path.join(os.getcwd(), 'signal')
-PATH_TO_NOISE_FOLDER = os.path.join(os.getcwd(), 'noise', 'realistic_noise', 'images')
+PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(os.getcwd(), 'noise', 'realistic_noise', 'images')
+PATH_TO_STATIC_NOISE_FOLDER = os.path.join(os.getcwd(), 'static_noise', 'data')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
@@ -38,13 +39,15 @@ if not os.path.isdir(PATH_TO_CACHE_FOLDER):
     os.makedirs(PATH_TO_CACHE_FOLDER)
 if not os.path.isdir(PATH_TO_SIGNAL_FOLDER):
     os.makedirs(PATH_TO_SIGNAL_FOLDER)
-if not os.path.isdir(PATH_TO_NOISE_FOLDER):
-    os.makedirs(PATH_TO_NOISE_FOLDER)
+if not os.path.isdir(PATH_TO_DYNAMIC_NOISE_FOLDER):
+    os.makedirs(PATH_TO_DYNAMIC_NOISE_FOLDER)
+if not os.path.isdir(PATH_TO_STATIC_NOISE_FOLDER):
+    os.makedirs(PATH_TO_STATIC_NOISE_FOLDER)
 
 if 'IS_CHARLIE' in os.environ:
     print('We are on Charlie')
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 def print_red(*text):
     print(f'{bcolors.FAIL}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
@@ -78,9 +81,15 @@ def open_hdf5_file(path_to_file):
     return result
 
 
-def get_df_noise() -> pd.DataFrame:
-    assert len(os.listdir(PATH_TO_NOISE_FOLDER)) != 0, 'There must be data in noise folder'
-    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/([^/]*)/([^/]*).png', f)[0]) for f in glob.glob(f'{PATH_TO_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
+def get_df_dynamic_noise() -> pd.DataFrame:
+    assert len(os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)) != 0, 'There must be data in noise folder'
+    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/([^/]*)/([^/]*).png', f)[0]) for f in glob.glob(f'{PATH_TO_DYNAMIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
+    df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
+    return df_noise
+
+def get_df_static_noise() -> pd.DataFrame:
+    assert len(os.listdir(PATH_TO_STATIC_NOISE_FOLDER)) != 0, 'There must be data in static_noise folder'
+    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_STATIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
     df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
     return df_noise
 

@@ -11,25 +11,32 @@ from sklearn.metrics import *
 import os
 import pandas as pd
 
-from src.helper.utils import get_df_noise, get_df_signal
+from src.helper.utils import get_df_dynamic_noise, get_df_signal
 
 
-def get_transforms():
-    return torchvision.transforms.Compose([
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(mean=0.5, std=0.1)
-        ])
+
 
 class GORealisticNoiseDataset(Dataset):
-    def __init__(self, size, df_noise, df_signal, positive_rate=0.5, is_train=False) -> None:
+    def __init__(self, 
+                 size, 
+                 df_noise, 
+                 df_signal, 
+                 positive_rate=0.5, 
+                 is_train=False, 
+                 gaussian_noise=1.0) -> None:
         # df_noise and df_signal are dataframes containing real noise or real signal
         self.df_noise = df_noise
         self.df_signal = df_signal
         self.positive_rate = positive_rate
         self.size = size
-        self.transforms = get_transforms()
+        self.transforms = self.get_transforms()
         self.is_train = is_train
+        self.gaussian_noise = gaussian_noise
 
+    def get_transforms(self):
+        return torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(mean=0.5, std=0.1)])
 
     def gen_sample(self, signal, noise, signal_strength):
         # print(signal, noise)
@@ -39,8 +46,8 @@ class GORealisticNoiseDataset(Dataset):
             signal = np.array(Image.open(signal))
             noise = noise + signal_strength * signal
 
-        if self.is_train and 2.0 > 0:
-            noise = noise + np.random.randn(*noise.shape) * 2.0 
+        if self.is_train and self.gaussian_noise > 0:
+            noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
 
         noise = np.clip(noise, 0, 255).astype(np.uint8)
         return self.transforms(noise)
@@ -68,7 +75,7 @@ if __name__ == '__main__':
     df_signal = get_df_signal()
     df_signal_train, df_signal_eval = np.array_split(df_signal, [int(len(df_signal) * 0.9)])
 
-    df_noise = get_df_noise()
+    df_noise = get_df_dynamic_noise()
     df_noise_train, df_noise_eval = np.array_split(df_noise, [int(len(df_noise) * 0.9)])
 
 
