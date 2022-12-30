@@ -57,7 +57,8 @@ class GORealisticCNNTrainer(GOTrainer):
                  one_cycle: bool = False,
                  model: str = 'efficientnetv2_rw_s',
                  gaussian_noise: float = 0.0,
-                 logging: bool = True) -> None:
+                 logging: bool = True,
+                 dataset_class = GORealisticNoiseDataset) -> None:
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -72,6 +73,7 @@ class GORealisticCNNTrainer(GOTrainer):
         self.folds = folds
         self.gaussian_noise = gaussian_noise
         self.logging = logging
+        self.dataset_class = dataset_class
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'best_static_realistic_cnn_{str(datetime.now())}'))
@@ -166,7 +168,7 @@ class GORealisticCNNTrainer(GOTrainer):
                 df_signal_train = self.df_signal.loc[train_idx]
                 df_signal_eval = self.df_signal.loc[eval_idx]
 
-        ds_train = GORealisticNoiseDataset(
+        ds_train = self.dataset_class(
             len(df_signal_train),
             df_noise_train,
             df_signal_train,
@@ -174,7 +176,7 @@ class GORealisticCNNTrainer(GOTrainer):
             gaussian_noise=self.gaussian_noise
         )
 
-        ds_eval = GORealisticNoiseDataset(
+        ds_eval = self.dataset_class(
             len(df_signal_eval),
             df_noise_eval,
             df_signal_eval,
