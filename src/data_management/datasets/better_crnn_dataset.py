@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 
 from src.ai_nets.pretrained_efficientnet import dataload, normalize, preprocess
-from src.data_management.dataset import GODataset
+from src.data_management.datasets.dataset import GODataset
 from src.data_management.hdf5_sorter import GOHDF5Sorter
 from src.helper.utils import PATH_TO_CACHE_FOLDER, print_blue, print_green, print_red, print_yellow
 
@@ -50,7 +50,7 @@ class GOBetterCRNNDataset(GODataset):
         result_tensor = torch.tensor(np.concatenate(cnn_predictions, axis=2))
 
         return (result_tensor, torch.tensor(labels, dtype=torch.int32))
-    
+
     def get_last_accessed_files(self):
         return self.last_accessed_files
 

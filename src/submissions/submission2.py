@@ -1,17 +1,20 @@
 #!pip install timm
 
-import os
-import torch
-import numpy as np
 import csv
+import os
+
+import numpy as np
+import torch
+
+from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
+import src.ai_nets.cnn_predicter as GOCNNPredictor
+from src.ai_nets.pretrained_efficientnet import get_capped_model
+from src.ai_nets.transformer import GOTransformer, GOTransformerTrainer, PositionalEncoding
+from src.helper.utils import (PATH_TO_CACHE_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, print_blue,
+                              print_green, print_red, print_yellow)
 
 #os.chdir('/kaggle/input/go-one/gravitational_oceans')
 
-from src.helper.utils import print_blue, print_green, print_red, print_yellow, PATH_TO_MODEL_FOLDER, PATH_TO_TRAIN_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_CACHE_FOLDER
-from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
-import src.ai_nets.cnn_predicter as GOCNNPredictor
-from src.ai_nets.pretrained_efficientnet import get_capped_model
-from src.ai_nets.transformer import GOTransformer, PositionalEncoding, GOTransformerTrainer
 
 model_params = {
     'num_tokens': 4,
@@ -22,7 +25,7 @@ model_params = {
     'dropout_p': 0.1
 }
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 ALL_FILES = [os.path.join(PATH_TO_TEST_FOLDER, 'cw_hdf5', file_name) for file_name in os.listdir(os.path.join(PATH_TO_TEST_FOLDER, 'cw_hdf5'))]
 ALL_FILES += [os.path.join(PATH_TO_TEST_FOLDER, 'no_cw_hdf5', file_name) for file_name in os.listdir(os.path.join(PATH_TO_TEST_FOLDER, 'no_cw_hdf5'))]
@@ -60,7 +63,7 @@ for x, y in dataloader:
                 samples[target] += [predicted_batch[i][j].item()]
             else:
                 samples[target] = [predicted_batch[i][j].item()]
-    
+
 res = {}
 for file_id, labels in samples.items():
     res[file_id] = np.mean(labels)
@@ -72,5 +75,3 @@ with open('submission.csv','w') as f:
     w = csv.writer(f)
     w.writerow(('id', 'target'))
     w.writerows(res.items())
-
-

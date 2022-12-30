@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
+from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
 from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 
@@ -116,7 +116,7 @@ class GOTransformer(nn.Module):
 
 class GOTransformerTrainer:
 
-    def __init__(self, 
+    def __init__(self,
                  sequence_length: int = 32,
                  batch_size: int = 8,
                  dim_model: int = 4096,
@@ -132,13 +132,13 @@ class GOTransformerTrainer:
         self.SOS_TOKEN_EMBEDDED = None
         self.EOS_TOKEN_EMBEDDED = None
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'transformer_{str(datetime.now())}'))
 
     def train(self):
         torch.autograd.set_detect_anomaly(True)
-    
+
         dataset = GOBetterCRNNDataset(sequence_length=self.sequence_length)
         train_set, val_set = torch.utils.data.random_split(dataset, [round(len(dataset) * 0.8), round(len(dataset) * 0.2)])
 
@@ -191,7 +191,7 @@ class GOTransformerTrainer:
             return torch.stack([torch.concat((self.SOS_TOKEN_EMBEDDED, item, self.EOS_TOKEN_EMBEDDED)) for item in batch])
         else:
             return batch
-            
+
     def features_to_embedding_vectors(self, features):
         # 192, 12, 115 -> 5, 52992
         split_and_flattened = torch.reshape(features, (self.sequence_length, -1))
@@ -202,7 +202,7 @@ class GOTransformerTrainer:
     def train_loop(self, model, opt, loss_fn, dataloader):
         model.train()
         total_loss = 0
-        
+
         for x, y in dataloader:
             # convert from a multi-dimensional feature vector to a simple embedding-vector
             x = torch.stack([self.features_to_embedding_vectors(item) for item in x])
@@ -232,9 +232,9 @@ class GOTransformerTrainer:
             opt.zero_grad()
             loss.backward(retain_graph=True)
             opt.step()
-        
+
             total_loss += loss.detach().item()
-            
+
         return total_loss / len(dataloader)
 
     def validation_loop(self, model, loss_fn, dataloader, epoch: int):
@@ -243,7 +243,7 @@ class GOTransformerTrainer:
         total_accuracy_complete = 0
         total_accuracy_start = 0
         c_time = 0
-        
+
         with torch.no_grad():
             for x, y in dataloader:
                 # convert from a multi-dimensional feature vector to a simple embedding-vector
@@ -259,7 +259,7 @@ class GOTransformerTrainer:
                 # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
                 y_input = y[:,:-1]
                 y_expected = y[:,1:]
-                
+
                 # Get mask to mask out the next words
                 sequence_length = y_input.size(1)
                 tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
@@ -299,13 +299,13 @@ class GOTransformerTrainer:
         return total_loss, total_accuracy_complete, total_accuracy_start
 
     def fit(self, model, opt, loss_fn, train_dataloader, val_dataloader, epochs, writer):
-        print_green("Training and validating model")
+        print_green('Training and validating model')
         max_accuracy_start = 0.0
         epoch_threshold = 20
         for epoch in tqdm(range(epochs), 'Epochs'):
-            
+
             train_loss = self.train_loop(model, opt, loss_fn, train_dataloader)
-            
+
             validation_loss, acc_complete, acc_start = self.validation_loop(model, loss_fn, val_dataloader, epoch)
 
             writer.add_scalar('loss/training', train_loss, epoch)
@@ -332,7 +332,7 @@ class GOTransformerTrainer:
         # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
         y_input = y[:,:-1]
         y_expected = y[:,1:]
-        
+
         # Get mask to mask out the next words
         sequence_length = y_input.size(1)
         tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
