@@ -5,27 +5,28 @@ from os import cpu_count, path
 
 import timm
 import torch
-from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import get_df_dynamic_noise, get_df_signal, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, print_blue
+from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue
+
 
 class GORealisticCNNTrainer(GOTrainer):
 
     """ found with optuna for dynamic noise
-    Trial 186 finished with value: 0.9148327726103305 and parameters: 
+    Trial 186 finished with value: 0.9148327726103305 and parameters:
     {
-        'LR': 0.0001393672397380405, 
-        'DROPOUT': 0.1, 
-        'MAX_GRAD_NORM': 7.639295602717996, 
-        'EPOCHS': 17.0, 
-        'GAUSSIAN_NOISE': 1.0, 
-        'ONE_CYCLE_PCT_START': 0.0, 
-        'MODEL': 'inception_v4', 
+        'LR': 0.0001393672397380405,
+        'DROPOUT': 0.1,
+        'MAX_GRAD_NORM': 7.639295602717996,
+        'EPOCHS': 17.0,
+        'GAUSSIAN_NOISE': 1.0,
+        'ONE_CYCLE_PCT_START': 0.0,
+        'MODEL': 'inception_v4',
         'ONE_CYCLE': False
     }. Best is trial 186 with value: 0.9148327726103305.
     """
@@ -43,15 +44,15 @@ class GORealisticCNNTrainer(GOTrainer):
         'ONE_CYCLE': False
     }. Best is trial 16 with value: 0.8343663095717244.
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
                  df_noise,
                  df_signal,
                  epochs: int = 20,
                  batch_size: int = 32,
                  dropout: float = 0.0,
                  lr: float = 0.00023710697312064318,
-                 max_grad_norm: float = 8.947457257778709, 
+                 max_grad_norm: float = 8.947457257778709,
                  folds: int = 2, # min 1
                  one_cycle_pct_start: float = 0.0,
                  one_cycle: bool = False,
@@ -132,7 +133,7 @@ class GORealisticCNNTrainer(GOTrainer):
                     optim.step()
                     if scheduler:
                         scheduler.step()
-                    
+
                     if self.logging:
                         self.writer.add_scalar(f'loss/epoch_{epoch}', loss.item(), step)
                         self.writer.add_scalar(f'lr/epoch_{epoch}', scheduler.get_last_lr()[0] if scheduler else self.lr, step)
@@ -143,7 +144,7 @@ class GORealisticCNNTrainer(GOTrainer):
                 if auc > max_auc:
                     torch.save(model.state_dict(), f'{PATH_TO_MODEL_FOLDER}/best_static_model-f{fold}.tph')
                     max_auc = auc
-                
+
                 if self.logging:
                     self.writer.add_scalar('val/loss', loss, epoch)
                     self.writer.add_scalar('val/auc', auc, epoch)
@@ -151,7 +152,7 @@ class GORealisticCNNTrainer(GOTrainer):
 
                 if epoch > 5:
                     result_max = max(result_max, max_auc)
-        
+
         return result_max
 
     def get_dl(self, fold):

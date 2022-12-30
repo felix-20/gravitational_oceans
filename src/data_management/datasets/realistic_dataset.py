@@ -16,12 +16,12 @@ from src.helper.utils import get_df_dynamic_noise, get_df_signal
 
 
 class GORealisticNoiseDataset(Dataset):
-    def __init__(self, 
-                 size, 
-                 df_noise, 
-                 df_signal, 
-                 positive_rate=0.5, 
-                 is_train=False, 
+    def __init__(self,
+                 size,
+                 df_noise,
+                 df_signal,
+                 positive_rate=0.5,
+                 is_train=False,
                  gaussian_noise=1.0) -> None:
         # df_noise and df_signal are dataframes containing real noise or real signal
         self.df_noise = df_noise

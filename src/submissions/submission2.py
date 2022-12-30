@@ -6,10 +6,10 @@ import os
 import numpy as np
 import torch
 
-from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
 import src.ai_nets.cnn_predicter as GOCNNPredictor
 from src.ai_nets.pretrained_efficientnet import get_capped_model
 from src.ai_nets.transformer import GOTransformer, GOTransformerTrainer, PositionalEncoding
+from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
 from src.helper.utils import (PATH_TO_CACHE_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, print_blue,
                               print_green, print_red, print_yellow)
 

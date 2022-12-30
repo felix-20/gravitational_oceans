@@ -1,7 +1,8 @@
 import optuna
 
-from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red, get_df_static_noise
 from src.ai_nets.realistic_cnn import GORealisticCNNTrainer
+from src.helper.utils import get_df_dynamic_noise, get_df_signal, get_df_static_noise, print_red
+
 
 def objective(trial: optuna.Trial):
     LR = trial.suggest_float('LR', 0.0001, 0.005, log=True)
