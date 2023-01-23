@@ -8,6 +8,8 @@ data/*
 models_saved/*
 train_data/*
 test_data/*
+noise/*
+signal/*
 
 submission.csv
 train_labels.csv

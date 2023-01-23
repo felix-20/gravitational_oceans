@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from src.ai_nets.crnn import GOCRNNParameters, GOCRNNTrainer
 from src.ai_nets.pretrained_efficientnet import get_capped_model
-from src.data_management.better_crnn_dataset import GOBetterCRNNDataset
+from src.data_management.datasets.better_crnn_dataset import GOBetterCRNNDataset
 from src.helper.utils import PATH_TO_MODEL_FOLDER, print_blue, print_green, print_red, print_yellow
 
 
