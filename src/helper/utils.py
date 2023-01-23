@@ -18,6 +18,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 if 'KAGGLE_BASE_URL' in os.environ:
     challenge = 'g2net-detecting-continuous-gravitational-waves'
     PATH_TO_TEST_FOLDER = os.path.join('/kaggle', 'input', challenge, 'test')
@@ -26,6 +27,10 @@ if 'KAGGLE_BASE_URL' in os.environ:
     PATH_TO_MODEL_FOLDER = os.path.join('/kaggle', 'input', 'models')
     PATH_TO_LOG_FOLDER = os.path.join('/kaggle', 'temp', 'logs')
     PATH_TO_CACHE_FOLDER = os.path.join('/kaggle', 'working', 'cache')
+    PATH_TO_SIGNAL_FOLDER = os.path.join('/kaggle', 'working', 'signal')
+    PATH_TO_NOISE_FOLDER = os.path.join('/kaggle', 'working', 'noise')
+    PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
+    PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
 else:
     PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
     PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
@@ -33,6 +38,10 @@ else:
     PATH_TO_LOG_FOLDER = os.path.join(os.getcwd(), 'logs')
     PATH_TO_CACHE_FOLDER = os.path.join(os.getcwd(), 'cache')
     PATH_TO_LABEL_FILE = os.path.join(os.getcwd(), 'train_labels.csv')
+    PATH_TO_SIGNAL_FOLDER = os.path.join(os.getcwd(), 'signal')
+    PATH_TO_NOISE_FOLDER = os.path.join(os.getcwd(), 'noise')
+    PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
+    PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
@@ -45,6 +54,8 @@ if not os.path.isdir(PATH_TO_LOG_FOLDER):
     os.makedirs(PATH_TO_LOG_FOLDER)
 if not os.path.isdir(PATH_TO_CACHE_FOLDER):
     os.makedirs(PATH_TO_CACHE_FOLDER)
+if not os.path.isdir(PATH_TO_NOISE_FOLDER):
+    os.makedirs(PATH_TO_NOISE_FOLDER)
 if not os.path.isdir(PATH_TO_SIGNAL_FOLDER):
     os.makedirs(PATH_TO_SIGNAL_FOLDER)
 if not os.path.isdir(PATH_TO_DYNAMIC_NOISE_FOLDER):
@@ -56,6 +67,7 @@ if 'IS_CHARLIE' in os.environ:
     print('We are on Charlie')
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
     os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+
 
 def print_red(*text):
     print(f'{bcolors.FAIL}{" ".join([str(t) for t in text])}{bcolors.ENDC}')
@@ -95,17 +107,20 @@ def get_df_dynamic_noise() -> pd.DataFrame:
     df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
     return df_noise
 
+
 def get_df_static_noise() -> pd.DataFrame:
     assert len(os.listdir(PATH_TO_STATIC_NOISE_FOLDER)) != 0, 'There must be data in static_noise folder'
     df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_STATIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
     df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
     return df_noise
 
+
 def get_df_signal() -> pd.DataFrame:
     assert len(os.listdir(PATH_TO_SIGNAL_FOLDER)) != 0, 'There must be data in signal folder'
     df_signal = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_SIGNAL_FOLDER}/*')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
     df_signal = df_signal.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
     return df_signal
+
 
 if __name__ == '__main__':
     print_red('This', 'text', 'is red', 1, 23)
