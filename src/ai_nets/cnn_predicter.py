@@ -14,6 +14,10 @@ def predict(cnn, paths_to_predict_files: str, multiplier: int = 1):
         makedirs(predict_folder)
 
     for file_path in tqdm(paths_to_predict_files, 'pre predicting progress'):
+
+        if not path.isfile(file_path) or not file_path.endswith('.hdf5'):
+            continue
+
         _, input_tensor, H1, L1 = dataload(file_path)
         tta = preprocess(multiplier, input_tensor, H1, L1)
         out = cnn(tta)

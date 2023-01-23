@@ -1,15 +1,17 @@
 # custom
+EMNIST
+
+logs/*
+cache/*
+tmp/*
 data/*
 models_saved/*
 train_data/*
 test_data/*
-EMNIST
-logs/*
-cache/*
-signal/*
 noise/*
+signal/*
+
 submission.csv
-tmp/*
 train_labels.csv
 
 # Byte-compiled / optimized / DLL files

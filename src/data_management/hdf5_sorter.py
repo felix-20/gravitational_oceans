@@ -1,16 +1,22 @@
 from functools import cmp_to_key
 from os import listdir, path
+import csv
 
 import numpy as np
 from tqdm import tqdm
 
-from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, open_hdf5_file, print_green
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, PATH_TO_LABEL_FILE, open_hdf5_file, print_green
 
 
 class GOHDF5Sorter:
 
-    def __init__(self, data_folder: str = PATH_TO_TEST_FOLDER):
-        self.data_folder = data_folder
+    def __init__(self,
+                 label_file: str = PATH_TO_LABEL_FILE,
+                 train_folder: str = PATH_TO_TRAIN_FOLDER,
+                 test_folder: str = PATH_TO_TEST_FOLDER):
+        self.label_file = label_file
+        self.train_folder = train_folder
+        self.test_folder = test_folder
 
         self.sorted_by_frequency = []
         self.label_mapping = {}
@@ -23,13 +29,24 @@ class GOHDF5Sorter:
         if self.label_mapping != {}:
             return self.label_mapping
 
-        no_cw_folder = path.join(self.data_folder, 'no_cw_hdf5')
-        cw_folder = path.join(self.data_folder, 'cw_hdf5')
+        with open(self.label_file, 'r') as csv_file:
+            reader = csv.reader(csv_file)
+            next(reader)
+            for key, value in reader:
+                train_file = path.join(self.train_folder, key + '.hdf5')
 
-        file_label_mapping = [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
-        file_label_mapping += [(path.join(cw_folder, file_name), 1) for file_name in listdir(cw_folder)]
+                if int(value) == -1:
+                    value = 3
 
-        self.label_mapping = dict(file_label_mapping)
+                self.label_mapping[train_file] = int(value) # 0, 1 or 3
+
+        assert(len(self.label_mapping) == len(listdir(self.train_folder)))
+
+        # set label EOS-Token for test-files
+        for file_name in listdir(self.test_folder):
+            test_file = path.join(self.test_folder, file_name)
+            self.label_mapping[test_file] = 3
+        
         return self.label_mapping
 
     def get_sorted_frequencies(self):
@@ -44,14 +61,10 @@ class GOHDF5Sorter:
             return self.sorted_by_frequency
 
 
-        no_cw_folder = path.join(self.data_folder, 'no_cw_hdf5')
-        cw_folder = path.join(self.data_folder, 'cw_hdf5')
-
-        file_label_mapping = [(path.join(no_cw_folder, file_name), 0) for file_name in listdir(no_cw_folder)]
-        file_label_mapping += [(path.join(cw_folder, file_name), 1) for file_name in listdir(cw_folder)]
+        self.get_label_mapping()
 
         print('Loading all data')
-        frequency_lookup = self._preprocess_freq_ranges(file_label_mapping)
+        frequency_lookup = self._preprocess_freq_ranges(self.label_mapping)
 
         def _compare_frequencies(file_a, file_b):
             data_a = frequency_lookup[file_a[0]]
@@ -65,8 +78,8 @@ class GOHDF5Sorter:
                 return 0
 
         print('Sorting data by frequency')
-        file_label_mapping.sort(key=cmp_to_key(_compare_frequencies))
-        self.sorted_by_frequency = file_label_mapping
+        self.sorted_by_frequency = list(self.label_mapping.items())
+        self.sorted_by_frequency.sort(key=cmp_to_key(_compare_frequencies))
 
         np.save(self.sorted_by_frequency_path, self.sorted_by_frequency)
 
@@ -74,7 +87,7 @@ class GOHDF5Sorter:
 
     def _preprocess_freq_ranges(self, file_label_mapping):
         result = {}
-        for path, _ in tqdm(file_label_mapping):
+        for path, _ in tqdm(file_label_mapping.items()):
             result[path] = open_hdf5_file(path)['frequencies'][0]
         return result
 
