@@ -1,11 +1,12 @@
+import csv
 from functools import cmp_to_key
 from os import listdir, path
-import csv
 
 import numpy as np
 from tqdm import tqdm
 
-from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, PATH_TO_LABEL_FILE, open_hdf5_file, print_green
+from src.helper.utils import (PATH_TO_CACHE_FOLDER, PATH_TO_LABEL_FILE, PATH_TO_TEST_FOLDER, PATH_TO_TRAIN_FOLDER, open_hdf5_file,
+                              print_green)
 
 
 class GOHDF5Sorter:
@@ -46,7 +47,7 @@ class GOHDF5Sorter:
         for file_name in listdir(self.test_folder):
             test_file = path.join(self.test_folder, file_name)
             self.label_mapping[test_file] = 3
-        
+
         return self.label_mapping
 
     def get_sorted_frequencies(self):

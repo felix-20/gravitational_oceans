@@ -1,8 +1,9 @@
-from src.helper.utils import open_hdf5_file, print_blue, print_green, print_red, print_yellow
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
 import numpy as np
+from matplotlib.pyplot import cm
 from PIL import Image
+
+from src.helper.utils import open_hdf5_file, print_blue, print_green, print_red, print_yellow
 
 
 def get_gaps(timestamp, comparing: bool = True):
@@ -25,7 +26,7 @@ def draw_gap_sizes_color(data, time, file_id):
     max_value = np.max(real)
     min_value = np.min(real)
     real = (real - min_value) / (max_value - min_value)
-            
+
     im = Image.fromarray(np.uint8(cm.gist_gray(real)*255))
     im.save(f'tmp/{file_id}_gaps.png')
 
@@ -37,7 +38,7 @@ def draw_gap_size_histogram(time, file_id):
         gaps += [gap_size]
 
     print(gaps)
-    
+
     plt.xlim([min(gaps) - 5, max(gaps) + 5])
 
     plt.hist(gaps, bins=200)

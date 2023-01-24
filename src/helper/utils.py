@@ -1,7 +1,7 @@
 import glob
+import json
 import os
 import re
-import json
 
 import h5py
 import numpy as np
