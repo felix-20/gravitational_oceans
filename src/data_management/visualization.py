@@ -4,18 +4,17 @@ from matplotlib.pyplot import cm
 import numpy as np
 from PIL import Image
 
-file_id = '42a3b2de1' #'518949f96'
-file_path = f'tmp/{file_id}.hdf5'
 
-data = open_hdf5_file(file_path)['h1']
+def get_gaps(timestamp, comparing: bool = True):
+    gaps = []
+    for i in range(len(timestamp)-1):
+        gap_size = timestamp[i+1] - timestamp[i]
+        if comparing or gap_size != 1800:
+            gaps += [gap_size]
+    return gaps
 
-time = data['timestamps']
-total_time = time[-1] - time[0]
 
-print_green(total_time)
-print_yellow(len(time))
-
-def draw_gap_sizes_color():
+def draw_gap_sizes_color(data, time, file_id):
     real = np.zeros(data['amplitudes'].shape)
 
     print_red(real.shape)
@@ -30,7 +29,8 @@ def draw_gap_sizes_color():
     im = Image.fromarray(np.uint8(cm.gist_gray(real)*255))
     im.save(f'tmp/{file_id}_gaps.png')
 
-def draw_gap_size_histogram():
+
+def draw_gap_size_histogram(time, file_id):
     gaps = []
     for i in range(len(time)-1):
         gap_size = time[i+1] - time[i]
@@ -43,5 +43,18 @@ def draw_gap_size_histogram():
     plt.hist(gaps, bins=200)
     plt.savefig(f'tmp/{file_id}_hist.png')
 
-# draw_gap_sizes_color()
-draw_gap_size_histogram()
+
+if __name__ == '__main__':
+    # draw_gap_sizes_color()
+    file_id = '42a3b2de1' #'518949f96'
+    file_path = f'tmp/{file_id}.hdf5'
+
+    data = open_hdf5_file(file_path)['h1']
+
+    time = data['timestamps']
+    total_time = time[-1] - time[0]
+
+    print_green(total_time)
+    print_yellow(len(time))
+
+    draw_gap_size_histogram(time, file_id)

@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import json
 
 import h5py
 import numpy as np
@@ -42,6 +43,7 @@ else:
     PATH_TO_NOISE_FOLDER = os.path.join(os.getcwd(), 'noise')
     PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
     PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
+    PATH_TO_TMP_FOLDER = os.path.join(os.getcwd(), 'tmp')
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
@@ -62,6 +64,8 @@ if not os.path.isdir(PATH_TO_DYNAMIC_NOISE_FOLDER):
     os.makedirs(PATH_TO_DYNAMIC_NOISE_FOLDER)
 if not os.path.isdir(PATH_TO_STATIC_NOISE_FOLDER):
     os.makedirs(PATH_TO_STATIC_NOISE_FOLDER)
+if not os.path.isdir(PATH_TO_TMP_FOLDER):
+    os.makedirs(PATH_TO_TMP_FOLDER)
 
 if 'IS_CHARLIE' in os.environ:
     print('We are on Charlie')
