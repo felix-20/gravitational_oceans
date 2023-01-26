@@ -1,19 +1,24 @@
-import matplotlib.pyplot as plt
 from random import randint
 
+import matplotlib.pyplot as plt
+
 from src.data_management.generation.gap_generator import GOGapGenerator
+from src.data_management.generation.statistics import GOStatisticsAll, GOStatisticsTimestamp
 from src.data_management.visualization import get_gaps
 
 
 class GOTimestepGenerator:
-    def __init__(self, number_of_gaps: int = None) -> None:
+    def __init__(self, number_of_gaps: int = None,
+        statistics: GOStatisticsAll = GOStatisticsAll()) -> None:
+
         self.num_gaps = number_of_gaps
         if not number_of_gaps:
-            self.num_gaps = randint(4000, 5000)
+            self.num_gaps = int(statistics.gap.count_distribution(statistics.gap.count_mean, statistics.gap.count_std))
+        self.constants = statistics.timestamps
 
     def generate_timestamps(self, start: int = None, gap_generator: GOGapGenerator = GOGapGenerator()):
         if not start:
-            start = randint(4000, 5000)
+            start = self.constants.start_distribution(self.constants.start_mean) + self.constants.start_min
         gaps = gap_generator.generate_gaps(self.num_gaps)
         timestamps = [start]
         last_value = start
@@ -24,6 +29,6 @@ class GOTimestepGenerator:
 
 
 if __name__ == '__main__':
-    time = GOTimestepGenerator(7000).generate_timestamps()
+    time = GOTimestepGenerator().generate_timestamps()
     plt.hist(get_gaps(time, False), bins=200)
     plt.savefig('tmp/test_fig.png')

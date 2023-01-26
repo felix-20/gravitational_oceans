@@ -1,4 +1,5 @@
 # https://www.kaggle.com/code/rodrigotenorio/generating-continuous-gravitational-wave-signals
+# This is the first approach to generating training data inspired by the link above
 
 import os
 import shutil

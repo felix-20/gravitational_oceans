@@ -1,10 +1,31 @@
 {    
     "gaps" : {
+        "count_mean": 4582.92,
+        "count_std": 8.30207610314638,
+        "count_distribution": "normal",
+        "distribution": "exponential", 
         "min": 1, 
         "max": 98406, 
         "mean": 7219.801568598668, 
         "median": 5010.5, 
         "std": 7194.4665428987655,
         "1800_ratio" : 0.9143817927285487
+    },
+    "noise": {
+        "static": {
+            "mean": 12,
+            "std": 2,
+            "distribution": "normal"
+        },
+        "dynamic": {
+            "mean": 12,
+            "std": 2,
+            "distribution": "normal"
+        }
+    },
+    "timestamps": {
+        "start_mean": 1238173010.78,
+        "start_min": 1238166085,
+        "start_distribution": "exponential"
     }
 }
