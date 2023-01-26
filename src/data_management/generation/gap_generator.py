@@ -6,9 +6,8 @@ from src.data_management.visualization import get_gaps
 
 
 class GOGapGenerator:
-    def __init__(self, statistics: GOStatistics = GOStatistics(), start_timestamp: int = 1) -> None:
+    def __init__(self, statistics: GOStatistics = GOStatistics()) -> None:
         self.constants = statistics
-        self.start = start_timestamp
 
     def generate_gaps(self, n: int) -> np.array:
         gaps = []
@@ -19,15 +18,4 @@ class GOGapGenerator:
             else:
                 # exponential distribution in all other cases
                 gaps += [np.random.exponential(self.constants.gap.mean)]
-        timestamps = [self.start]
-        last_value = self.start
-        for gap_size in gaps:
-            timestamps += [last_value + gap_size]
-            last_value = timestamps[-1]
-        return timestamps
-
-
-if __name__ == '__main__':
-    time = GOGapGenerator().generate_gaps(7000)
-    plt.hist(get_gaps(time, False), bins=200)
-    plt.savefig('tmp/test_fig.png')
+        return gaps
