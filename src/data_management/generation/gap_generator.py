@@ -28,6 +28,6 @@ class GOGapGenerator:
 
 
 if __name__ == '__main__':
-    time = GOGapGenerator().generate_gaps(1000000)
-    plt.hist(get_gaps(time, False))
+    time = GOGapGenerator().generate_gaps(7000)
+    plt.hist(get_gaps(time, False), bins=200)
     plt.savefig('tmp/test_fig.png')
