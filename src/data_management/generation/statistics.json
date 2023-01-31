@@ -13,8 +13,15 @@
     },
     "noise": {
         "static": {
-            "mean": 12,
-            "std": 2,
+            "mean": {
+                "mean": 0,
+                "std": 1.5,
+                "distribution": "normal"
+            },
+            "std": {
+                "const": 0.01,
+                "distribution": "const"
+            },
             "distribution": "normal"
         },
         "dynamic": {

@@ -4,6 +4,7 @@ from os.path import abspath, dirname, isfile, join
 import numpy as np
 
 from src.helper.utils import print_yellow
+from src.data_management.generation.distribution import GODistributionFactory
 
 
 class GOStatistics:
@@ -83,8 +84,8 @@ class GOStaticNoise(GOStatistics):
         assert all(keyword in noise_dict for keyword in ['mean', 'std', 'distribution']), \
             'Your keywords in dynamic noise dict are missing some'
 
-        self.mean = noise_dict['mean']
-        self.std = noise_dict['std']
+        self.mean = GODistributionFactory.parse(noise_dict['mean'])
+        self.std = GODistributionFactory.parse(noise_dict['std'])
         self.distribution = self.translate_distributions(noise_dict['distribution'])
 
 
