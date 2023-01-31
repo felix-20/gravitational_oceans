@@ -80,7 +80,7 @@ class GODynamicNoise(GOStatistics):
 
 class GOStaticNoise(GOStatistics):
     def __init__(self, noise_dict) -> None:
-        assert all(keyword in noise_dict for keyword in ['static', 'dynamic']), \
+        assert all(keyword in noise_dict for keyword in ['mean', 'std', 'distribution']), \
             'Your keywords in dynamic noise dict are missing some'
 
         self.mean = noise_dict['mean']
