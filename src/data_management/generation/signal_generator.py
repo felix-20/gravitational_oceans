@@ -1,20 +1,19 @@
-import pyfstat
-import numpy as np
 import math
 import sys
-
-from contextlib import redirect_stderr
-from io import StringIO
-from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
-from os.path import join, isdir
-from os import makedirs, devnull
-from cv2 import imwrite
+from os import devnull, makedirs
+from os.path import isdir, join
 from secrets import token_hex
 from shutil import rmtree
 
-from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_SIGNAL_FOLDER, print_red
+import numpy as np
+import pyfstat
+from cv2 import imwrite
+from tqdm import tqdm
+
 from src.data_management.generation.timestamps_generator import GOTimestepGenerator
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_SIGNAL_FOLDER
+
 
 class GOSignalGenerator:
     def __init__(self, timesteps_big: list) -> None:
@@ -25,9 +24,9 @@ class GOSignalGenerator:
         self.writer_kwargs = {
             'sqrtSX': 1e-23, # Single-sided Amplitude Spectral Density of the noise
             'Tsft': 1800, # Fourier transform time duration
-            "SFTWindowType": "tukey",  # Window function to compute short Fourier transforms
-            "SFTWindowBeta": 0.01,  # Parameter associated to the window function
-            "detectors": "H1,L1",
+            'SFTWindowType': 'tukey',  # Window function to compute short Fourier transforms
+            'SFTWindowBeta': 0.01,  # Parameter associated to the window function
+            'detectors': 'H1,L1',
             'timestamps': {
                 'H1': np.array(timesteps, dtype=int),
                 'L1': np.array(timesteps, dtype=int),
@@ -50,7 +49,7 @@ class GOSignalGenerator:
             'Delta': np.random.uniform(-math.pi / 2, math.pi / 2), # Declination of the source's position on the sky,
             'tp': t_start, #+ 86400 * random.randint(0, 30), # signal offset
             # 'h0': writer_kwargs["sqrtSX"] * np.random.uniform(0.10, 0.02),
-            'h0': self.writer_kwargs["sqrtSX"] * 100,
+            'h0': self.writer_kwargs['sqrtSX'] * 100,
             #         'asini': random.randint(10, 500), # amplitude of signal
             #         'period': random.randint(90, 730) * 86400,
         }
@@ -58,7 +57,7 @@ class GOSignalGenerator:
     def __call__(self, idx: int):
         path_to_tmp_folder = join(PATH_TO_CACHE_FOLDER, 'signal_generation', str(idx))
         makedirs(path_to_tmp_folder, exist_ok=True)
-        
+
         self.writer_kwargs['outdir'] = path_to_tmp_folder
         self.writer_kwargs['label'] = 'Signal'
         try:
@@ -85,11 +84,8 @@ class GOSignalGenerator:
 
     def generate_signals(self, n: int):
         with ProcessPoolExecutor() as p:
-            for files in tqdm(p.map(self, range(n))):
+            for _ in tqdm(p.map(self, range(n))):
                 pass
-        # GOSignalGenerator()
-        # for _ in range(n):
-        #     self.generate_single_signal()
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ class GOStatisticsAll:
             self.timestamps = GOStatisticsTimestamp(statistic_dict['timestamps'])
         else:
             print_yellow('You did not provide the "timestamps" keyword')
-        
+
         if 'noise' in statistic_dict:
             self.noise = GONoise(statistic_dict['noise'])
 
