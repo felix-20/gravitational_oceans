@@ -13,12 +13,12 @@ class GOTimestepGenerator:
 
         self.num_gaps = number_of_gaps
         if not number_of_gaps:
-            self.num_gaps = int(statistics.gap.count_distribution.distribute())
+            self.num_gaps = int(statistics.gap.count_distribution.sample())
         self.constants = statistics.timestamps
 
     def generate_timestamps(self, start: int = None, gap_generator: GOGapGenerator = GOGapGenerator()):
         if not start:
-            start = self.constants.start_distribution.distribute() + self.constants.start_min
+            start = self.constants.start_distribution.sample() + self.constants.start_min
         gaps = gap_generator.generate_gaps(self.num_gaps)
         timestamps = [start]
         last_value = start

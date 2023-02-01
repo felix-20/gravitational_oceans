@@ -17,5 +17,5 @@ class GOGapGenerator:
                 gaps += [1800]
             else:
                 # exponential distribution in all other cases
-                gaps += [self.constants.distribution.distribute()]
+                gaps += [self.constants.distribution.sample()]
         return gaps

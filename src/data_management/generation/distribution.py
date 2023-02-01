@@ -5,7 +5,7 @@ class GODistribution:
     def __init__(self) -> None:
         pass
 
-    def distribute(self, size=None):
+    def sample(self, size=None):
         pass
 
 
@@ -14,7 +14,12 @@ class GONormalDistribution(GODistribution):
         self.mean = parameter_dict['mean']
         self.std = parameter_dict['std']
 
-    def distribute(self, size=None):
+    def sample(self, size=None):
+        if issubclass(type(self.mean), GODistribution):
+            self.mean = self.mean.sample()
+        if issubclass(type(self.std), GODistribution):
+            self.std = self.std.sample()
+
         return np.random.normal(self.mean, self.std, size)
 
 
@@ -22,7 +27,7 @@ class GOConstDistribution(GODistribution):
     def __init__(self, parameter_dict: dict) -> None:
         self.const = parameter_dict['const']
 
-    def distribute(self, size=None):
+    def sample(self, size=None):
         return np.full(size, self.const) if size else self.const
 
 
@@ -30,7 +35,7 @@ class GOExponentialDistribution(GODistribution):
     def __init__(self, parameter_dict: dict) -> None:
         self.mean = parameter_dict['mean']
 
-    def distribute(self, size=None):
+    def sample(self, size=None):
         return np.random.exponential(self.mean, size)
 
 
