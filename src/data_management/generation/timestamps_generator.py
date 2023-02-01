@@ -3,22 +3,22 @@ from random import randint
 import matplotlib.pyplot as plt
 
 from src.data_management.generation.gap_generator import GOGapGenerator
-from src.data_management.generation.statistics import GOStatisticsAll, GOStatisticsTimestamp
+from src.data_management.generation.statistics import GOStatistics, GOStatisticsTimestamp
 from src.data_management.visualization import get_gaps
 
 
 class GOTimestepGenerator:
     def __init__(self, number_of_gaps: int = None,
-        statistics: GOStatisticsAll = GOStatisticsAll()) -> None:
+        statistics: GOStatistics = GOStatistics()) -> None:
 
         self.num_gaps = number_of_gaps
         if not number_of_gaps:
-            self.num_gaps = int(statistics.gap.count_distribution(statistics.gap.count_mean, statistics.gap.count_std))
+            self.num_gaps = int(statistics.gap.count_distribution.distribute())
         self.constants = statistics.timestamps
 
     def generate_timestamps(self, start: int = None, gap_generator: GOGapGenerator = GOGapGenerator()):
         if not start:
-            start = self.constants.start_distribution(self.constants.start_mean) + self.constants.start_min
+            start = self.constants.start_distribution.distribute() + self.constants.start_min
         gaps = gap_generator.generate_gaps(self.num_gaps)
         timestamps = [start]
         last_value = start

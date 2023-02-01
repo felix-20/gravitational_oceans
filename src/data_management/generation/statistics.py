@@ -3,21 +3,11 @@ from os.path import abspath, dirname, isfile, join
 
 import numpy as np
 
-from src.helper.utils import print_yellow
 from src.data_management.generation.distribution import GODistributionFactory
+from src.helper.utils import print_yellow
 
 
 class GOStatistics:
-    def translate_distributions(self, distribution_keyword: str):
-        if distribution_keyword == 'exponential':
-            return np.random.exponential
-        elif distribution_keyword == 'normal':
-            return np.random.normal
-        else:
-            assert False, f'Your given distribution {distribution_keyword} is not valid'
-
-
-class GOStatisticsAll:
     def __init__(self, path_to_file: str = join(dirname(abspath(__file__)), 'statistics.json')) -> None:
         assert isfile(path_to_file), 'You need to have a statisics.json file'
 
@@ -38,35 +28,42 @@ class GOStatisticsAll:
             self.noise = GONoise(statistic_dict['noise'])
 
 
-class GOStatisticsGap(GOStatistics):
+class GOStatisticsGap:
     def __init__(self, gap_dict: dict) -> None:
         assert all(keyword in gap_dict for keyword in \
             ['min', 'max', 'mean', 'median', 'std', '1800_ratio', 'distribution', 'count_mean', 'count_std', 'count_distribution']), \
             'Your keywords in gap dict are missing some'
-        self.count_mean = gap_dict['count_mean']
-        self.count_std = gap_dict['count_std']
-        self.count_distribution = self.translate_distributions(gap_dict['count_distribution'])
+        count_dict = {}
+        count_dict['distribution'] = gap_dict['count_distribution']
+        count_dict['mean'] = gap_dict['count_mean']
+        count_dict['std'] = gap_dict['count_std']
+        self.count_distribution = GODistributionFactory.parse(count_dict)
+        # self.count_mean = gap_dict['count_mean']
+        # self.count_std = gap_dict['count_std']
 
-        self.distribution = self.translate_distributions(gap_dict['distribution'])
+        self.distribution = GODistributionFactory.parse(gap_dict)
         self.min = gap_dict['min']
         self.max = gap_dict['max']
-        self.mean = gap_dict['mean']
+        # self.mean = gap_dict['mean']
+        # self.std = gap_dict['std']
         self.median = gap_dict['median']
-        self.std = gap_dict['std']
         self.ratio = gap_dict['1800_ratio']
 
 
-class GOStatisticsTimestamp(GOStatistics):
+class GOStatisticsTimestamp:
     def __init__(self, timestamps_dict: dict) -> None:
         assert all(keyword in timestamps_dict for keyword in ['start_mean', 'start_distribution', 'start_min']), \
             'Your keywords in timestamps dict are missing some'
 
-        self.start_mean = timestamps_dict['start_mean']
-        self.start_distribution = self.translate_distributions(timestamps_dict['start_distribution'])
+        start_dict = {}
+        start_dict['distribution'] = timestamps_dict['start_distribution']
+        start_dict['mean'] = timestamps_dict['start_mean']
+
+        self.start_distribution = GODistributionFactory.parse(start_dict)
         self.start_min = timestamps_dict['start_min']
 
 
-class GONoise(GOStatistics):
+class GONoise:
     def __init__(self, noise_dict: dict) -> None:
         assert all(keyword in noise_dict for keyword in ['static', 'dynamic']), \
             'Your keywords in noise dict are missing some'
@@ -74,20 +71,23 @@ class GONoise(GOStatistics):
         self.dynamic = GODynamicNoise(noise_dict['dynamic'])
 
 
-class GODynamicNoise(GOStatistics):
+class GODynamicNoise:
     def __init__(self, dynamic_dict: dict) -> None:
         pass
 
 
-class GOStaticNoise(GOStatistics):
+class GOStaticNoise:
     def __init__(self, noise_dict) -> None:
         assert all(keyword in noise_dict for keyword in ['mean', 'std', 'distribution']), \
             'Your keywords in dynamic noise dict are missing some'
 
         self.mean = GODistributionFactory.parse(noise_dict['mean'])
         self.std = GODistributionFactory.parse(noise_dict['std'])
-        self.distribution = self.translate_distributions(noise_dict['distribution'])
+
+        noise_dict['mean'] = self.mean
+        noise_dict['std'] = self.std
+        self.distribution = GODistributionFactory.parse(noise_dict)
 
 
 if __name__ == '__main__':
-    print(GOStatistics().gap.max)
+    print(GOStatistics().noise.static.distribution)
