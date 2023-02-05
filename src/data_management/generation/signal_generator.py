@@ -92,7 +92,7 @@ def generate_sample(idx: int):
 
 if __name__ == '__main__':
 
-    samples = 10
+    samples = 100
     with ProcessPoolExecutor() as p:
         for _ in tqdm(p.map(generate_sample, range(samples))):
             pass

@@ -38,15 +38,11 @@ class GORealisticNoiseDataset(Dataset):
 
     def gen_sample(self, signal, noise, signal_strength):
         noise = np.array(Image.open(noise))
+        noise = noise[:,:4500]
 
         if signal:
             signal = np.array(Image.open(signal))
-
-            # constrain length
-            min_len = min(noise.shape[1], signal.shape[1])
-            print_red(min_len)
-            noise = noise[:,:min_len]
-            signal = signal[:,:min_len]
+            signal = signal[:,:4500]
 
             noise = noise + signal_strength * signal
 
