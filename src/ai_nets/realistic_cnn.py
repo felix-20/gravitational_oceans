@@ -160,14 +160,14 @@ class GORealisticCNNTrainer(GOTrainer):
         df_noise_train, df_noise_eval = None, None
         for f, (train_idx, eval_idx) in enumerate(kfold.split(self.df_noise)):
             if f == fold:
-                df_noise_train = self.df_noise.loc[train_idx]
-                df_noise_eval = self.df_noise.loc[eval_idx]
+                df_noise_train = [self.df_noise[i] for i in train_idx]
+                df_noise_eval = [self.df_noise[i] for i in eval_idx]
 
         df_signal_train, df_signal_eval = None, None
         for f, (train_idx, eval_idx) in enumerate(kfold.split(self.df_signal)):
             if f == fold:
-                df_signal_train = self.df_signal.loc[train_idx]
-                df_signal_eval = self.df_signal.loc[eval_idx]
+                df_signal_train = [self.df_signal[i] for i in train_idx]
+                df_signal_eval = [self.df_signal[i] for i in eval_idx]
 
         ds_train = self.dataset_class(
             len(df_signal_train),

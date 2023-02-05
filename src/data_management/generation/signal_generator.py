@@ -5,6 +5,7 @@ from os import devnull, makedirs
 from os.path import isdir, join
 from secrets import token_hex
 from shutil import rmtree
+from time import time
 
 import numpy as np
 import pyfstat
@@ -82,13 +83,20 @@ class GOSignalGenerator:
         except Exception as ex:
             print(ex)
 
-    def generate_signals(self, n: int):
-        with ProcessPoolExecutor() as p:
-            for _ in tqdm(p.map(self, range(n))):
-                pass
+
+def generate_sample(idx: int):
+    np.random.seed(idx + int(time()))
+    timesteps = GOTimestepGenerator().generate_timestamps()
+    GOSignalGenerator(timesteps).__call__(idx)
 
 
 if __name__ == '__main__':
-    timesteps = GOTimestepGenerator().generate_timestamps()
-    samples = 100
-    GOSignalGenerator(timesteps).generate_signals(samples)
+
+    samples = 10
+    with ProcessPoolExecutor() as p:
+        for _ in tqdm(p.map(generate_sample, range(samples))):
+            pass
+
+    #for i in range(samples):
+    #    timesteps = GOTimestepGenerator().generate_timestamps()
+    #    GOSignalGenerator(timesteps).__call__(i)

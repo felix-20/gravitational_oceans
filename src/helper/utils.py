@@ -107,23 +107,20 @@ def open_hdf5_file(path_to_file):
 
 def get_df_dynamic_noise() -> pd.DataFrame:
     assert len(os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)) != 0, 'There must be data in noise folder'
-    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/([^/]*)/([^/]*).png', f)[0]) for f in glob.glob(f'{PATH_TO_DYNAMIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
-    df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
-    return df_noise
+    return [os.path.join(PATH_TO_DYNAMIC_NOISE_FOLDER, p) for p in os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)]
 
 
 def get_df_static_noise() -> pd.DataFrame:
     assert len(os.listdir(PATH_TO_STATIC_NOISE_FOLDER)) != 0, 'There must be data in static_noise folder'
-    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_STATIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
-    df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
-    return df_noise
+    return [os.path.join(PATH_TO_STATIC_NOISE_FOLDER, p) for p in os.listdir(PATH_TO_STATIC_NOISE_FOLDER)]
 
 
 def get_df_signal() -> pd.DataFrame:
     assert len(os.listdir(PATH_TO_SIGNAL_FOLDER)) != 0, 'There must be data in signal folder'
-    df_signal = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_SIGNAL_FOLDER}/*')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
-    df_signal = df_signal.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
-    return df_signal
+    all_files = [os.path.join(PATH_TO_SIGNAL_FOLDER, p) for p in os.listdir(PATH_TO_SIGNAL_FOLDER)]
+    all_files = sorted(all_files)
+    offset = len(all_files) // 2
+    return [(all_files[i], all_files[i+offset]) for i in range(offset)]
 
 
 if __name__ == '__main__':

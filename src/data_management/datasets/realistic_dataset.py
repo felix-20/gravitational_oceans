@@ -1,8 +1,6 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
-import glob
 import os
-import re
 
 import numpy as np
 import pandas as pd
@@ -11,8 +9,9 @@ import torchvision
 from PIL import Image
 from sklearn.metrics import *
 from torch.utils.data import Dataset
+from secrets import choice
 
-from src.helper.utils import get_df_dynamic_noise, get_df_signal
+from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red
 
 
 class GORealisticNoiseDataset(Dataset):
@@ -38,11 +37,17 @@ class GORealisticNoiseDataset(Dataset):
             torchvision.transforms.Normalize(mean=0.5, std=0.1)])
 
     def gen_sample(self, signal, noise, signal_strength):
-        # print(signal, noise)
         noise = np.array(Image.open(noise))
-        # print(np.mean(noise.flatten() / 255), np.std(noise.flatten()/ 255))
+
         if signal:
             signal = np.array(Image.open(signal))
+
+            # constrain length
+            min_len = min(noise.shape[1], signal.shape[1])
+            print_red(min_len)
+            noise = noise[:,:min_len]
+            signal = signal[:,:min_len]
+
             noise = noise + signal_strength * signal
 
         if self.is_train and self.gaussian_noise > 0:
@@ -53,12 +58,12 @@ class GORealisticNoiseDataset(Dataset):
 
 
     def __getitem__(self, index):
-        noise_files = self.df_noise.sample().files.values[0]
+        noise_files = [choice(self.df_noise), choice(self.df_noise)]
 
         sig_files = [None, None]
         label = 0
         if np.random.random() < self.positive_rate:
-            sig_files = self.df_signal.sample().files.values[0]
+            sig_files = choice(self.df_signal)
             label = 1
         signal_strength = np.random.uniform(0.02, 0.10)
         return np.concatenate([self.gen_sample(sig, noise, signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0), label, signal_strength
