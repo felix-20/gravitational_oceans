@@ -2,6 +2,7 @@
 
 import os
 
+import cv2
 import numpy as np
 import pandas as pd
 import torch
@@ -11,7 +12,7 @@ from sklearn.metrics import *
 from torch.utils.data import Dataset
 from secrets import choice
 
-from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red
+from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red, PATH_TO_CACHE_FOLDER
 
 
 class GORealisticNoiseDataset(Dataset):
@@ -19,6 +20,7 @@ class GORealisticNoiseDataset(Dataset):
                  size,
                  df_noise,
                  df_signal,
+                 signal_strength=1.0,
                  positive_rate=0.5,
                  is_train=False,
                  gaussian_noise=1.0) -> None:
@@ -30,6 +32,7 @@ class GORealisticNoiseDataset(Dataset):
         self.transforms = self.get_transforms()
         self.is_train = is_train
         self.gaussian_noise = gaussian_noise
+        self.signal_strength = signal_strength
 
     def get_transforms(self):
         return torchvision.transforms.Compose([
@@ -40,11 +43,11 @@ class GORealisticNoiseDataset(Dataset):
         noise = np.array(Image.open(noise))
         noise = noise[:,:4500]
 
-        if signal:
+        if True: #signal:
             signal = np.array(Image.open(signal))
             signal = signal[:,:4500]
 
-            noise = noise + signal_strength * signal
+            #noise = noise + signal_strength * signal
 
         if self.is_train and self.gaussian_noise > 0:
             noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
@@ -61,8 +64,20 @@ class GORealisticNoiseDataset(Dataset):
         if np.random.random() < self.positive_rate:
             sig_files = choice(self.df_signal)
             label = 1
-        signal_strength = np.random.uniform(0.02, 0.10)
-        return np.concatenate([self.gen_sample(sig, noise, signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0), label, signal_strength
+        signal_strength = self.signal_strength # np.random.uniform(0.02, 0.10)
+        img = np.concatenate([self.gen_sample(sig, noise, signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0)
+        path = os.path.join(PATH_TO_CACHE_FOLDER, 'img', f'{index}.jpg')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        print_red(img[0].shape)
+        img += abs(np.min(img))
+        img /= np.max(img)
+        img *= 255
+        print_red(img[0])
+        cv2.imwrite(f'{index}.jpg', img[0])
+        #i.save(path)
+        print(f'Done {path}')
+        # exit(0)
+        return img, label, signal_strength
 
 
     def __len__(self):

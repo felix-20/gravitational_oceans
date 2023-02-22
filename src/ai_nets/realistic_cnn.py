@@ -1,18 +1,20 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
 from datetime import datetime
-from os import cpu_count, path
+from os import cpu_count, path, makedirs
 
 import timm
 import torch
+import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue
+from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_CACHE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue
 
 
 class GORealisticCNNTrainer(GOTrainer):
@@ -59,7 +61,8 @@ class GORealisticCNNTrainer(GOTrainer):
                  model: str = 'efficientnetv2_rw_s',
                  gaussian_noise: float = 0.0,
                  logging: bool = True,
-                 dataset_class = GORealisticNoiseDataset) -> None:
+                 dataset_class = GORealisticNoiseDataset,
+                 signal_strength=np.random.uniform(0.02, 0.1)) -> None:
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -75,6 +78,7 @@ class GORealisticCNNTrainer(GOTrainer):
         self.gaussian_noise = gaussian_noise
         self.logging = logging
         self.dataset_class = dataset_class
+        self.signal_strength=signal_strength
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'best_static_realistic_cnn_{str(datetime.now())}'))
@@ -174,14 +178,16 @@ class GORealisticCNNTrainer(GOTrainer):
             df_noise_train,
             df_signal_train,
             is_train=True,
-            gaussian_noise=self.gaussian_noise
+            gaussian_noise=self.gaussian_noise,
+            signal_strength=self.signal_strength
         )
 
         ds_eval = self.dataset_class(
             len(df_signal_eval),
             df_noise_eval,
             df_signal_eval,
-            gaussian_noise=self.gaussian_noise
+            gaussian_noise=self.gaussian_noise,
+            signal_strength=self.signal_strength
         )
 
         dl_train = torch.utils.data.DataLoader(ds_train, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
@@ -190,4 +196,18 @@ class GORealisticCNNTrainer(GOTrainer):
 
 
 if __name__ == '__main__':
-    GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal()).train()
+    result_x = []
+    result_y = []
+    for sig in np.linspace(1.0, 0.02, 10):
+        result_x += [sig]
+        acc = GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal(), signal_strength=sig).train()
+        result_y += [acc]
+    plt.plot(result_x, result_y)
+    plt.title('Accuracy vs signal strength for realistic cnn')
+    plt.xlabel('signal strength')
+    plt.ylabel('accuracy')
+    save_path = path.join(PATH_TO_CACHE_FOLDER, 'statistics', 'signal_strength.png')
+    makedirs(path.dirname(save_path), exist_ok=True)
+    plt.savefig(save_path)
+
+
