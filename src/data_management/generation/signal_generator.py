@@ -65,9 +65,7 @@ class GOSignalGenerator:
             sys.stdout = open(devnull, 'w')
             writer = pyfstat.BinaryModulatedWriter(**self.writer_kwargs, **self.signal_params)
             writer.make_data()
-            frequency, timestamps, amplitudes = pyfstat.utils.get_sft_as_arrays(
-                writer.sftfilepath
-            )
+            _, _, amplitudes = pyfstat.utils.get_sft_as_arrays(writer.sftfilepath)
             sys.stdout = sys.__stdout__
 
             rmtree(path_to_tmp_folder)

@@ -26,6 +26,9 @@ class GOStatistics:
 
         if 'noise' in statistic_dict:
             self.noise = GONoise(statistic_dict['noise'])
+        
+        if 'frequencies' in statistic_dict:
+            self.frequencies = GOFrequencies(statistic_dict['frequencies'])
 
 
 class GOStatisticsGap:
@@ -73,7 +76,7 @@ class GONoise:
 
 class GODynamicNoise:
     def __init__(self, dynamic_dict: dict) -> None:
-        pass
+        self.amplitude_distribution = GODistributionFactory.parse(dynamic_dict['amplitude'])
 
 
 class GOStaticNoise:
@@ -87,6 +90,10 @@ class GOStaticNoise:
         noise_dict['mean'] = self.mean
         noise_dict['std'] = self.std
         self.distribution = GODistributionFactory.parse(noise_dict)
+
+class GOFrequencies:
+    def __init__(self, frequency_dict: dict) -> None:
+        self.distribution = GODistributionFactory.parse(frequency_dict)
 
 
 if __name__ == '__main__':

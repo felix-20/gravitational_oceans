@@ -25,14 +25,21 @@
             "distribution": "normal"
         },
         "dynamic": {
-            "mean": 12,
-            "std": 2,
-            "distribution": "normal"
+            "amplitude" : {
+                "mean": 1,
+                "std": 0.1,
+                "distribution": "normal"
+            }
         }
     },
     "timestamps": {
         "start_mean": 1238173010.78,
         "start_min": 1238166085,
         "start_distribution": "exponential"
+    },
+    "frequencies": {
+        "mean": 100,
+        "std": 10,
+        "distribution": "normal"
     }
 }
