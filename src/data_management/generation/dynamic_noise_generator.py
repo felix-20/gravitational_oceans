@@ -23,33 +23,40 @@ class GODynamicNoiseGenerator:
         self.dynamic_noise_stats = statistics.noise.dynamic
         self.buckets = buckets
 
-    def generate_noise(self, bucket_count: int = 256, token: str='none'):
-        bucket_size = self.timestep_count // bucket_count
+    def linear_time_buckets(self, bucket_count):
+        bucket_size = (self.timesteps[-1] - self.timesteps[0]) // bucket_count
+        idx = np.searchsorted(self.timesteps, [self.timesteps[0] + bucket_size * i for i in range(bucket_count)])
+        return list(idx) + [self.timestep_count]
+    
+    def bucketize_real_noise_asd(self, sfts, bucket_count=256):
+        bucket_size = (self.timesteps[-1] - self.timesteps[0]) // bucket_count
+        idx = np.searchsorted(self.timesteps, [self.timesteps[0] + bucket_size * i for i in range(bucket_count)])
+        global_noise_amp = np.mean(np.abs(sfts))
+        return np.array([np.mean(np.abs(i)) if i.shape[1] > 0 else global_noise_amp for i in np.array_split(sfts, idx[1:], axis=1)]), bucket_size
+
+    def generate_noise(self, bucket_count: int = 512, token: str='none'):
+        bucket_delimiter_indices = self.linear_time_buckets(bucket_count)
+        single_bucket_sizes = np.ediff1d(bucket_delimiter_indices)
 
         buckets = []
 
-        # inicialize with a mean that is sampled from a distribution of bucket means
-        #random_walk_value = self.dynamic_noise_stats.amplitude_mean.sample()
-        #tmp = []
         for i in range(bucket_count):
+            if single_bucket_sizes[i] == 0:
+                continue
+
             bucket_std = self.dynamic_noise_stats.amplitude_std.sample()
-            bucket_mean = self.dynamic_noise_stats.random_walk.sample() * np.random.choice([-1, 1], 1)
-            buckets += [np.random.normal(bucket_mean, bucket_std, (360, bucket_size))]
+            bucket_mean = self.dynamic_noise_stats.amplitude_mean.sample()
 
-        # last bucket
-        bucket_std = self.dynamic_noise_stats.amplitude_std.sample()
-        bucket_mean = self.dynamic_noise_stats.random_walk.sample() * np.random.choice([-1, 1], 1)
-        buckets += [np.random.normal(bucket_mean, bucket_std, (360, self.timestep_count - bucket_size * bucket_count))]
+            bucket_mean_offset = self.dynamic_noise_stats.random_walk.sample() * np.random.choice([-1, 1], 1)
 
+            buckets += [np.random.normal(bucket_mean_offset + bucket_mean, bucket_std, (360, single_bucket_sizes[i]))]
 
-            #tmp += [self.dynamic_noise_stats.random_walk.sample() * np.random.choice([-1, 1], 1)]
-            #print_yellow(buckets[-1])
-            #exit(1)
-
+        # generate statistics
         result = np.concatenate(buckets, axis=1)
-        means = np.mean(result, axis=0)
-
-        x = range(self.timestep_count)
+        #means = [np.mean(bucket) for bucket in np.array_split(result, bucket_count, axis=1)]
+        #means = np.mean(result, axis=0)
+        means, _ = self.bucketize_real_noise_asd(result, bucket_count)
+        x = range(bucket_count)#range(self.timestep_count)
         plt.plot(x, means)
         plt.savefig(join(PATH_TO_CACHE_FOLDER, 'direct_statistics_'+token+'.png'))
         plt.clf()

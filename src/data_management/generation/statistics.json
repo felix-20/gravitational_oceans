@@ -29,19 +29,19 @@
         },
         "dynamic": {
             "amplitude_mean": {
-                "mean": 1.2270197657926474e-05,
-                "std": 0.019484641030430794,
+                "mean": 8.987444469199524e-12,
+                "std": 1.0410934336846367e-08,
                 "distribution": "normal"
             },
             "amplitude_std": {
-                "mean": 0.27,
-                "std": 0.0215,
-                "distribution": "normal"
+                "shape": 1.8148094415664673,
+                "scale": 0.12331361174583434,
+                "offset": 0.9844940066337585,
+                "distribution": "gamma"
             },
             "random_walk": {
-                "shape": 1.4639285612018824,
-                "scale": 0.014493056623396401,
-                "offset": 6.472691893577576e-08,
+                "shape": 1.375658577682149,
+                "scale": 0.01836719754640727,
                 "distribution": "gamma"
             }
         }
