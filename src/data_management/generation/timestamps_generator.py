@@ -8,15 +8,14 @@ from src.data_management.visualization import get_gaps
 
 
 class GOTimestepGenerator:
-    def __init__(self, number_of_gaps: int = None,
+    def __init__(self,
         statistics: GOStatistics = GOStatistics()) -> None:
 
-        self.num_gaps = number_of_gaps
-        if not number_of_gaps:
-            self.num_gaps = int(statistics.gap.count_distribution.sample())
+        self.gap_statistics = statistics.gap
         self.constants = statistics.timestamps
 
     def generate_timestamps(self, start: int = None, gap_generator: GOGapGenerator = GOGapGenerator()):
+        self.num_gaps = int(self.gap_statistics.count_distribution.sample())
         if not start:
             start = self.constants.start_distribution.sample() + self.constants.start_min
         gaps = gap_generator.generate_gaps(self.num_gaps)

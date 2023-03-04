@@ -1,14 +1,17 @@
 {    
     "gaps" : {
-        "count_mean": 4582.92,
-        "count_std": 8.30207610314638,
-        "count_distribution": "normal",
-        "distribution": "exponential", 
+        "count": {
+            "mean": 4582.92,
+            "std": 8.30207610314638,
+            "distribution": "normal"
+        },
+        "gap": {
+            "mean": 7219.801568598668, 
+            "distribution": "exponential"
+        },
         "min": 1, 
         "max": 98406, 
-        "mean": 7219.801568598668, 
         "median": 5010.5, 
-        "std": 7194.4665428987655,
         "1800_ratio" : 0.9143817927285487
     },
     "noise": {
@@ -25,10 +28,21 @@
             "distribution": "normal"
         },
         "dynamic": {
-            "amplitude" : {
-                "mean": 1,
-                "std": 0.1,
+            "amplitude_mean": {
+                "mean": 1.2270197657926474e-05,
+                "std": 0.019484641030430794,
                 "distribution": "normal"
+            },
+            "amplitude_std": {
+                "mean": 0.27,
+                "std": 0.0215,
+                "distribution": "normal"
+            },
+            "random_walk": {
+                "shape": 1.4639285612018824,
+                "scale": 0.014493056623396401,
+                "offset": 6.472691893577576e-08,
+                "distribution": "gamma"
             }
         }
     },

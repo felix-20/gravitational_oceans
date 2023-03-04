@@ -33,18 +33,11 @@ class GOStatistics:
 
 class GOStatisticsGap:
     def __init__(self, gap_dict: dict) -> None:
-        assert all(keyword in gap_dict for keyword in \
-            ['min', 'max', 'mean', 'median', 'std', '1800_ratio', 'distribution', 'count_mean', 'count_std', 'count_distribution']), \
-            'Your keywords in gap dict are missing some'
-        count_dict = {}
-        count_dict['distribution'] = gap_dict['count_distribution']
-        count_dict['mean'] = gap_dict['count_mean']
-        count_dict['std'] = gap_dict['count_std']
-        self.count_distribution = GODistributionFactory.parse(count_dict)
+        self.count_distribution = GODistributionFactory.parse(gap_dict['count'])
         # self.count_mean = gap_dict['count_mean']
         # self.count_std = gap_dict['count_std']
 
-        self.distribution = GODistributionFactory.parse(gap_dict)
+        self.distribution = GODistributionFactory.parse(gap_dict['gap'])
         self.min = gap_dict['min']
         self.max = gap_dict['max']
         # self.mean = gap_dict['mean']
@@ -76,7 +69,9 @@ class GONoise:
 
 class GODynamicNoise:
     def __init__(self, dynamic_dict: dict) -> None:
-        self.amplitude_distribution = GODistributionFactory.parse(dynamic_dict['amplitude'])
+        self.amplitude_mean = GODistributionFactory.parse(dynamic_dict['amplitude_mean'])
+        self.amplitude_std = GODistributionFactory.parse(dynamic_dict['amplitude_std'])
+        self.random_walk = GODistributionFactory.parse(dynamic_dict['random_walk'])
 
 
 class GOStaticNoise:

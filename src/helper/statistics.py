@@ -108,8 +108,8 @@ def print_noise_statistics():
 
 
 if __name__=='__main__':
-    all_hdf5_files = list(filter(lambda filename: filename.endswith('.hdf5'), os.listdir(PATH_TO_TRAIN_FOLDER)))
-    all_files_complete_path = [os.path.join(PATH_TO_TRAIN_FOLDER, filename) for filename in all_hdf5_files]
+    all_hdf5_files = list(filter(lambda filename: filename.endswith('.hdf5'), os.listdir(os.path.join(PATH_TO_TRAIN_FOLDER, 'no_cw_hdf5'))))
+    all_files_complete_path = [os.path.join(PATH_TO_TRAIN_FOLDER, 'no_cw_hdf5', filename) for filename in all_hdf5_files]
     assert all_files_complete_path, f'There are no files, that can be analysed in {PATH_TO_TRAIN_FOLDER}'
     compute_noise_statistics(all_files_complete_path)
     visualize_noise_statistics()

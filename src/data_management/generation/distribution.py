@@ -34,10 +34,20 @@ class GOConstDistribution(GODistribution):
 class GOExponentialDistribution(GODistribution):
     def __init__(self, parameter_dict: dict) -> None:
         self.mean = parameter_dict['mean']
+        self.offset = parameter_dict['offset'] if 'offset' in parameter_dict else 0
 
     def sample(self, size=None):
-        return np.random.exponential(self.mean, size)
+        return np.random.exponential(self.mean - self.offset, size) + self.offset
 
+
+class GOGammaDistribution(GODistribution):
+    def __init__(self, parameter_dict: dict) -> None:
+        self.shape = parameter_dict['shape']
+        self.scale = parameter_dict['scale']
+        self.offset = parameter_dict['offset'] if 'offset' in parameter_dict else 0
+
+    def sample(self, size=None):
+        return np.random.gamma(self.shape, self.scale, size) + self.offset
 
 class GODistributionFactory:
     @classmethod
@@ -57,6 +67,9 @@ class GODistributionFactory:
 
     def _parse_exponential(parameter_dict: dict):
         return GOExponentialDistribution(parameter_dict)
+    
+    def _parse_gamma(parameter_dict: dict):
+        return GOGammaDistribution(parameter_dict)
 
 
 if __name__ == '__main__':
