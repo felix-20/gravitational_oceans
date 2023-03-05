@@ -6,6 +6,7 @@ from os import cpu_count, path, makedirs
 import timm
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 from torch.utils.tensorboard import SummaryWriter
@@ -51,7 +52,7 @@ class GORealisticCNNTrainer(GOTrainer):
                  df_noise,
                  df_signal,
                  epochs: int = 20,
-                 batch_size: int = 32,
+                 batch_size: int = 2,
                  dropout: float = 0.0,
                  lr: float = 0.00023710697312064318,
                  max_grad_norm: float = 8.947457257778709,
@@ -78,7 +79,7 @@ class GORealisticCNNTrainer(GOTrainer):
         self.gaussian_noise = gaussian_noise
         self.logging = logging
         self.dataset_class = dataset_class
-        self.signal_strength=signal_strength
+        self.signal_strength = signal_strength
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'best_static_realistic_cnn_{str(datetime.now())}'))
@@ -139,10 +140,10 @@ class GORealisticCNNTrainer(GOTrainer):
                         scheduler.step()
 
                     if self.logging:
-                        self.writer.add_scalar(f'loss/epoch_{epoch}', loss.item(), step)
-                        self.writer.add_scalar(f'lr/epoch_{epoch}', scheduler.get_last_lr()[0] if scheduler else self.lr, step)
-                        self.writer.add_scalar(f'grad_norm/epoch_{epoch}', norm, step)
-                        self.writer.add_scalar(f'logit/epoch_{epoch}', pred.mean().item(), step)
+                        self.writer.add_scalar(f'fold_{fold}/loss/epoch_{epoch}', loss.item(), step)
+                        self.writer.add_scalar(f'fold_{fold}/lr/epoch_{epoch}', scheduler.get_last_lr()[0] if scheduler else self.lr, step)
+                        self.writer.add_scalar(f'fold_{fold}/grad_norm/epoch_{epoch}', norm, step)
+                        self.writer.add_scalar(f'fold_{fold}/logit/epoch_{epoch}', pred.mean().item(), step)
 
                 auc, loss = self.evaluate(model, dl_eval)[:2]
                 if auc > max_auc:
@@ -150,9 +151,9 @@ class GORealisticCNNTrainer(GOTrainer):
                     max_auc = auc
 
                 if self.logging:
-                    self.writer.add_scalar('val/loss', loss, epoch)
-                    self.writer.add_scalar('val/auc', auc, epoch)
-                    self.writer.add_scalar('val/max_auc', max_auc, epoch)
+                    self.writer.add_scalar(f'fold_{fold}/val/loss', loss, epoch)
+                    self.writer.add_scalar(f'fold_{fold}/val/auc', auc, epoch)
+                    self.writer.add_scalar(f'fold_{fold}/val/max_auc', max_auc, epoch)
 
                 if epoch > 5:
                     result_max = max(result_max, max_auc)
@@ -180,12 +181,16 @@ class GORealisticCNNTrainer(GOTrainer):
             is_train=True,
             gaussian_noise=self.gaussian_noise,
             signal_strength=self.signal_strength
+            gaussian_noise=self.gaussian_noise,
+            signal_strength=self.signal_strength
         )
 
         ds_eval = self.dataset_class(
             len(df_signal_eval),
             df_noise_eval,
             df_signal_eval,
+            gaussian_noise=self.gaussian_noise,
+            signal_strength=self.signal_strength
             gaussian_noise=self.gaussian_noise,
             signal_strength=self.signal_strength
         )
@@ -200,7 +205,7 @@ if __name__ == '__main__':
     result_y = []
     for sig in np.linspace(1.0, 0.02, 10):
         result_x += [sig]
-        acc = GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal(), signal_strength=sig).train()
+        acc = GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal(), signal_strength=sig, folds=1, logging=False).train()
         result_y += [acc]
     plt.plot(result_x, result_y)
     plt.title('Accuracy vs signal strength for realistic cnn')
@@ -209,5 +214,3 @@ if __name__ == '__main__':
     save_path = path.join(PATH_TO_CACHE_FOLDER, 'statistics', 'signal_strength.png')
     makedirs(path.dirname(save_path), exist_ok=True)
     plt.savefig(save_path)
-
-
