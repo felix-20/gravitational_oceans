@@ -1,11 +1,6 @@
-import glob
-import json
 import os
-import re
-
 import h5py
 import numpy as np
-import pandas as pd
 
 
 class bcolors:
@@ -70,7 +65,8 @@ if not os.path.isdir(PATH_TO_TMP_FOLDER):
 if 'IS_CHARLIE' in os.environ:
     print('We are on Charlie')
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:2000"
 
 
 def print_red(*text):
@@ -105,17 +101,17 @@ def open_hdf5_file(path_to_file):
     return result
 
 
-def get_df_dynamic_noise() -> pd.DataFrame:
+def get_df_dynamic_noise():
     assert len(os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)) != 0, 'There must be data in noise folder'
     return [os.path.join(PATH_TO_DYNAMIC_NOISE_FOLDER, p) for p in os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)]
 
 
-def get_df_static_noise() -> pd.DataFrame:
+def get_df_static_noise():
     assert len(os.listdir(PATH_TO_STATIC_NOISE_FOLDER)) != 0, 'There must be data in static_noise folder'
     return [os.path.join(PATH_TO_STATIC_NOISE_FOLDER, p) for p in os.listdir(PATH_TO_STATIC_NOISE_FOLDER)]
 
 
-def get_df_signal() -> pd.DataFrame:
+def get_df_signal():
     assert len(os.listdir(PATH_TO_SIGNAL_FOLDER)) != 0, 'There must be data in signal folder'
     all_files = [os.path.join(PATH_TO_SIGNAL_FOLDER, p) for p in os.listdir(PATH_TO_SIGNAL_FOLDER)]
     all_files = sorted(all_files)

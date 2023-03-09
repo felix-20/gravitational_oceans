@@ -42,13 +42,13 @@ class GORealisticNoiseDataset(Dataset):
 
     def gen_sample(self, signal, noise, signal_strength):
         noise = np.array(Image.open(noise))
-        noise = noise[:,:4000]
+        noise = noise[:,:2000]
 
-        if True: #signal:
+        if signal:
             signal = np.array(Image.open(signal))
-            signal = signal[:,:4000]
+            signal = signal[:,:2000]
 
-            #noise = noise + signal_strength * signal
+            noise = noise + signal_strength * signal
 
         #if self.is_train and self.gaussian_noise > 0:
         #    noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
@@ -68,8 +68,7 @@ class GORealisticNoiseDataset(Dataset):
 
         img = np.concatenate([self.gen_sample(sig, noise, self.signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0)
 
-        # path = os.path.join('./gravitational_oceans', f'sample{index}_.png')
-        # os.makedirs(os.path.dirname(path), exist_ok=True)
+        # path = f'./gravitational_oceans/tmp/sample{index}_{label}.png'
         # print_red(img[0].shape)
         # img += abs(np.min(img))
         # img /= np.max(img)
@@ -93,7 +92,6 @@ if __name__ == '__main__':
 
     df_noise = get_df_dynamic_noise()
     df_noise_train, df_noise_eval = np.array_split(df_noise, [int(len(df_noise) * 0.9)])
-
 
     ds_eval = GORealisticNoiseDataset(
         len(df_signal_eval),

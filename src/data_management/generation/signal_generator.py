@@ -15,12 +15,17 @@ from tqdm import tqdm
 from src.data_management.generation.timestamps_generator import GOTimestepGenerator
 from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_SIGNAL_FOLDER
 
+# disable info logs
+import logging
+logging.getLogger('pyfstat').setLevel(logging.CRITICAL)
+
 
 class GOSignalGenerator:
     def __init__(self, timesteps_big: list) -> None:
         timesteps_tmp = [x-timesteps_big[0] for x in timesteps_big]
         t_min = 630720013
         timesteps = [x+t_min for x in timesteps_tmp]
+
         t_start = timesteps[0]
         self.writer_kwargs = {
             'sqrtSX': 1e-23, # Single-sided Amplitude Spectral Density of the noise
@@ -90,7 +95,7 @@ def generate_sample(idx: int):
 
 if __name__ == '__main__':
 
-    samples = 100
+    samples = 1000
     with ProcessPoolExecutor() as p:
         for _ in tqdm(p.map(generate_sample, range(samples))):
             pass

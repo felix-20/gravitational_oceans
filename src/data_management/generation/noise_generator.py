@@ -2,12 +2,10 @@ import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 from os.path import join
-from secrets import token_hex
-from cv2 import imwrite
-from time import time
-
 from src.data_management.generation.statistics import GOStaticNoise, GOStatistics
 from src.helper.utils import PATH_TO_STATIC_NOISE_FOLDER
+from secrets import token_hex
+from cv2 import imwrite
 from src.data_management.generation.timestamps_generator import GOTimestepGenerator
 
 class GOStaticNoiseGenerator:
@@ -23,12 +21,12 @@ class GOStaticNoiseGenerator:
         fname = join(PATH_TO_STATIC_NOISE_FOLDER, f'{token}.png')
         imwrite(fname, amp)
 
-def generate_sample(idx: int):
-    np.random.seed(idx + int(time()))
-    timesteps = GOTimestepGenerator().generate_timestamps()
-    GOStaticNoiseGenerator(timesteps).__call__(idx)
+    def generate_noises(self, n: int):
+        with ProcessPoolExecutor() as p:
+            for _ in tqdm(p.map(self, range(n))):
+                pass
 
 if __name__ == '__main__':
-    samples = 1000
-    for i in tqdm(range(samples)):
-        generate_sample(i)
+    timesteps = GOTimestepGenerator().generate_timestamps()
+    samples = 100
+    GOStaticNoiseGenerator(timesteps).generate_noises(samples)

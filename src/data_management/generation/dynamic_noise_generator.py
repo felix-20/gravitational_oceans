@@ -29,7 +29,7 @@ class GODynamicNoiseGenerator:
         return list(idx) + [self.timestep_count]
     
     def generate_noise(self):
-        bucket_delimiter_indices = self.linear_time_buckets(self.bucket_count)
+        bucket_delimiter_indices = self.linear_time_buckets()
         single_bucket_sizes = np.ediff1d(bucket_delimiter_indices)
 
         buckets = []
@@ -62,7 +62,7 @@ def generate_sample(idx: int):
     GODynamicNoiseGenerator(timesteps).__call__(idx)
 
 if __name__ == '__main__':
-    samples = 10
+    samples = 1000
     for i in tqdm(range(samples)):
         generate_sample(i)
 
