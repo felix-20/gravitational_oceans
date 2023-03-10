@@ -33,6 +33,7 @@ class GOPlainCNNTrainer(GOTrainer):
         self.logging = logging
         self.dataset_class = dataset_class
         self.signal_strength = signal_strength
+        self.input_shape = (360, 2000)
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'plain_cnn_{str(datetime.now())}'))
@@ -40,6 +41,26 @@ class GOPlainCNNTrainer(GOTrainer):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         print(f'Training on {self.device}')
+
+    def get_model(self):
+        input_size = self.input_shape[1]# self.input_shape[0] * self.input_shape[1]
+        dense = torch.nn.Linear(in_features=input_size, out_features=input_size, device=self.device)
+        max_pool = torch.nn.MaxPool2d(kernel_size=7, stride=2, padding=0, dilation=3)
+        model = timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
+        return torch.nn.Sequential(dense, max_pool, model)
+    
+    """   
+    class FullModel():
+        def __init__():
+            self.dense = torch.nn.Linear(in_features=input_size, out_features=input_size, device=self.device)
+            self.max_pool = torch.nn.MaxPool2d(kernel_size=7, stride=2, padding=0, dilation=3)
+            self.model = timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
+        
+        def call(self, input): # shape (batch_size, detectors, height, width)
+            linearized = input.reshape(batch_size, 2, width * height)
+            weighted = dense(linearized)
+            2d_         
+    """
 
     @torch.no_grad()
     def evaluate(self, model, dl_eval):
@@ -94,7 +115,7 @@ class GOPlainCNNTrainer(GOTrainer):
         dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=self.batch_size, drop_last=True)
         dataloader_eval = torch.utils.data.DataLoader(dataset_eval, batch_size=self.batch_size, drop_last=True)
 
-        model = timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
+        model = self.get_model()
         optim = torch.optim.Adam(model.parameters(), lr=self.lr)
 
         max_accuracy = 0
@@ -133,8 +154,7 @@ class GOPlainCNNTrainer(GOTrainer):
 if __name__ == '__main__':
     file_path = path.join(PATH_TO_CACHE_FOLDER, 'signal_strength_over_accuracy.csv')
 
-    for f in np.linspace(0.02, 0.35, 10):
+    for f in np.linspace(0.21, 0.17, 5):
         max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()
         with open(file_path, 'a') as file:
             file.write(f'{f},{max_accuracy},{",".join([str(x.numpy()) for x in accuracies])}\n')
-
