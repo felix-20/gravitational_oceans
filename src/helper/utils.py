@@ -119,6 +119,13 @@ def get_df_signal():
     return [(all_files[i], all_files[i+offset]) for i in range(offset)]
 
 
+def normalize_image(img):
+    img += abs(np.min(img))
+    img /= np.max(img)
+    img *= 255
+    return img
+
+
 if __name__ == '__main__':
     print_red('This', 'text', 'is red', 1, 23)
     print_blue('This', 'text', 'is blue', 1, 23)
