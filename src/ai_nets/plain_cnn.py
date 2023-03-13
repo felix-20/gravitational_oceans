@@ -12,19 +12,22 @@ import cv2
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_CACHE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue, print_green, print_red, print_yellow, normalize_image
+from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_SOURCE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue, print_green, print_red, print_yellow, normalize_image
 
 
 epoch_index = 0
 epoch_changed = True
 
 class GOHadamardLayer(torch.nn.Module):
-    def __init__(self, in_features, device):
+    def __init__(self, 
+                 in_features, 
+                 device, 
+                 path_to_weight_image=path.join(PATH_TO_SOURCE_FOLDER, 'ai_nets', 'pretrained_weights', 'signals_pretrained.png')):
         super().__init__()
 
-        tensor = torch.ones(in_features, device=device)
-        self.weight = torch.nn.Parameter(data=tensor, requires_grad=True)
-        self.weight.data.uniform_(-1, 1)
+        weight_data = cv2.imread(path_to_weight_image, cv2.IMREAD_GRAYSCALE) / 255.0
+        tensor = torch.tensor(weight_data, device=device, dtype=torch.float)
+        self.weight = torch.nn.Parameter(tensor)
     
     def forward(self, x):
         return torch.mul(self.weight, x)
@@ -33,9 +36,9 @@ class GOHadamardLayer(torch.nn.Module):
 class GODenseMaxPoolModel(torch.nn.Module):
     def __init__(self, input_shape, batch_size, model, device):
         super().__init__()
-        self.max_pool = torch.nn.MaxPool2d(kernel_size=7, stride=10, padding=0, dilation=3)
-        # torch.nn.Linear(in_features=np.prod(input_shape), out_features=np.prod(input_shape), device=device)
         self.weighting = GOHadamardLayer(in_features=input_shape, device=device)
+        self.max_pool = torch.nn.MaxPool2d(kernel_size=7, stride=2, padding=0, dilation=3)
+        # torch.nn.Linear(in_features=np.prod(input_shape), out_features=np.prod(input_shape), device=device)
         self.model = timm.create_model(model, num_classes=1, in_chans=2).to(device)
 
         self.batch_size = batch_size
@@ -45,27 +48,29 @@ class GODenseMaxPoolModel(torch.nn.Module):
     
     def forward(self, X): # shape (batch_size, detectors, height, width)
         global epoch_index, epoch_changed
-        pooled = self.max_pool(X)
+        weighted = self.weighting(X)
+        
         #linearized = pooled.reshape(self.batch_size, 2, -1)
         #weighted = self.weighting(linearized)
         #weighted = weighted.reshape(self.batch_size, 2, self.width, self.height)
-
-        weighted = self.weighting(pooled)
+        pooled = self.max_pool(weighted)
+        
         if epoch_changed:
             epoch_changed = False
             cv2.imwrite(f'./gravitational_oceans/tmp/weights_{epoch_index}.png', normalize_image(self.weighting.weight.cpu().detach().numpy()))
+            print_red('saved')
         
-        return self.model(weighted)
+        return self.model(pooled)
 
 
 class GOPlainCNNTrainer(GOTrainer):
 
     def __init__(self,
-                 epochs: int = 20,
+                 epochs: int = 15,
                  batch_size: int = 8,
-                 lr: float = 0.01,
-                 max_grad_norm: float = 1.0,
-                 model: str = 'resnet50',
+                 lr: float = 0.0029125088766753125,
+                 max_grad_norm: float = 13.644276196745786,
+                 model: str = 'resnext50_32x4d',
                  logging: bool = True,
                  dataset_class = GORealisticNoiseDataset,
                  signal_strength: float = 1.0) -> None:
@@ -89,7 +94,8 @@ class GOPlainCNNTrainer(GOTrainer):
 
     def get_model(self):
         print_blue(self.model)
-        return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
+        return GODenseMaxPoolModel((360, 2000), self.batch_size, self.model, self.device) 
+        # return timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
     
     @torch.no_grad()
     def evaluate(self, model, dl_eval):
@@ -186,9 +192,9 @@ class GOPlainCNNTrainer(GOTrainer):
 
 
 if __name__ == '__main__':
-    file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strength_over_accuracy_with_dense_{datetime.now()}.csv')
+    #file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strength_over_accuracy_with_dense_{datetime.now()}.csv')
 
-    GOPlainCNNTrainer(logging=False, signal_strength=0.17).train()
+    GOPlainCNNTrainer(logging=True, signal_strength=0.17).train()
 
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()

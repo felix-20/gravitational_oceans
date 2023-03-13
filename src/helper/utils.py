@@ -27,6 +27,7 @@ if 'KAGGLE_BASE_URL' in os.environ:
     PATH_TO_NOISE_FOLDER = os.path.join('/kaggle', 'working', 'noise')
     PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
     PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
+    PATH_TO_SOURCE_FOLDER = os.path.join('/kaggle', 'working', 'src')
 else:
     PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
     PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
@@ -39,6 +40,7 @@ else:
     PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
     PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
     PATH_TO_TMP_FOLDER = os.path.join(os.getcwd(), 'tmp')
+    PATH_TO_SOURCE_FOLDER = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
