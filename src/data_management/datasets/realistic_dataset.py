@@ -11,7 +11,6 @@ from PIL import Image
 from sklearn.metrics import *
 from torch.utils.data import Dataset
 from secrets import choice
-import cv2
 
 from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red, print_yellow, print_green
 
@@ -40,18 +39,24 @@ class GORealisticNoiseDataset(Dataset):
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize(mean=0.5, std=0.1)])
 
-    def gen_sample(self, signal, noise, signal_strength):
-        noise = np.array(Image.open(noise))
-        noise = noise[:,:2000]
+    def vladifier(self, float_image, factor):
+        float_image = float_image[:, :4096]
+        img = float_image.reshape(360, 256, -1).mean(axis=2)
+        
+        return np.clip(img * 255 * factor, 0, 255).astype(np.uint8)
 
-        if signal:
-            signal = np.array(Image.open(signal))
-            signal = signal[:,:2000]
+    def gen_sample(self, signal_file, noise_file, signal_strength):
+        noise = np.array(cv2.imread(noise_file, cv2.IMREAD_GRAYSCALE))
 
+        noise = self.vladifier(noise / 255.0, 1.0)
+
+        if signal_file:
+            signal = np.array(cv2.imread(signal_file, cv2.IMREAD_GRAYSCALE))
+            signal = self.vladifier(signal / 255.0, 1.5)
             noise = noise + signal_strength * signal
 
-        #if self.is_train and self.gaussian_noise > 0:
-        #    noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
+        if self.is_train and self.gaussian_noise > 0:
+            noise = noise + np.random.randn(*noise.shape) * self.gaussian_noise
 
         noise = np.clip(noise, 0, 255).astype(np.uint8)
         return self.transforms(noise)

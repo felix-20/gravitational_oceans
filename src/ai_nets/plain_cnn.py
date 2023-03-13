@@ -69,6 +69,7 @@ class GOPlainCNNTrainer(GOTrainer):
                  epochs: int = 15,
                  batch_size: int = 8,
                  lr: float = 0.0029125088766753125,
+                 dropout: float = 0.1,
                  max_grad_norm: float = 13.644276196745786,
                  model: str = 'resnext50_32x4d',
                  logging: bool = True,
@@ -79,6 +80,7 @@ class GOPlainCNNTrainer(GOTrainer):
         self.batch_size = batch_size
         self.max_grad_norm = max_grad_norm
         self.lr = lr
+        self.dropout = dropout
         self.model = model
         self.logging = logging
         self.dataset_class = dataset_class
@@ -94,8 +96,8 @@ class GOPlainCNNTrainer(GOTrainer):
 
     def get_model(self):
         print_blue(self.model)
-        return GODenseMaxPoolModel((360, 2000), self.batch_size, self.model, self.device) 
-        # return timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
+        #return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
+        return timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
     
     @torch.no_grad()
     def evaluate(self, model, dl_eval):
