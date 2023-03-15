@@ -97,7 +97,7 @@ class GOPlainCNNTrainer(GOTrainer):
     def get_model(self):
         print_blue(self.model)
         #return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
-        return timm.create_model(self.model, num_classes=1, in_chans=2).to(self.device)
+        return timm.create_model(self.model, num_classes=1, in_chans=2, pretrained=True, drop_rate=0.1).to(self.device)
     
     @torch.no_grad()
     def evaluate(self, model, dl_eval):
@@ -196,7 +196,12 @@ class GOPlainCNNTrainer(GOTrainer):
 if __name__ == '__main__':
     #file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strength_over_accuracy_with_dense_{datetime.now()}.csv')
 
-    GOPlainCNNTrainer(logging=True, signal_strength=0.17).train()
+    GOPlainCNNTrainer(logging=True, 
+                    signal_strength=0.17, 
+                    epochs=17, 
+                    lr=0.000139, 
+                    max_grad_norm=7.639,
+                    model='inception_v4').train()
 
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()

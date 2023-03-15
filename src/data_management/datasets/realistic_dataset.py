@@ -12,7 +12,7 @@ from sklearn.metrics import *
 from torch.utils.data import Dataset
 from secrets import choice
 
-from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red, print_yellow, print_green
+from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red, print_yellow, print_green, PATH_TO_CACHE_FOLDER
 
 
 class GORealisticNoiseDataset(Dataset):
@@ -73,14 +73,12 @@ class GORealisticNoiseDataset(Dataset):
 
         img = np.concatenate([self.gen_sample(sig, noise, self.signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0)
 
-        # path = f'./gravitational_oceans/tmp/sample{index}_{label}.png'
-        # print_red(img[0].shape)
-        # img += abs(np.min(img))
-        # img /= np.max(img)
-        # img *= 255
-        # cv2.imwrite(path, img[0])
-        # print_green(f'{index} done is signal: {label==1}')
-        # exit(1)
+        path = f'{PATH_TO_CACHE_FOLDER}/sample{index}_{label}.png'
+        print_red(img[0].shape)
+        img -= np.min(img)
+        img /= np.max(img)
+        img *= 255
+        cv2.imwrite(path, img[0])
 
         return img, label, self.signal_strength
 
