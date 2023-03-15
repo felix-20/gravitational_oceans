@@ -23,7 +23,7 @@ class GORealisticNoiseDataset(Dataset):
                  positive_rate=0.5,
                  is_train=False,
                  gaussian_noise=1.0,
-                 signal_strength=0.1) -> None:
+                 signal_strength_upper=0.1) -> None:
         # df_noise and df_signal are dataframes containing real noise or real signal
         self.df_noise = df_noise
         self.df_signal = df_signal
@@ -32,7 +32,7 @@ class GORealisticNoiseDataset(Dataset):
         self.transforms = self.get_transforms()
         self.is_train = is_train
         self.gaussian_noise = gaussian_noise
-        self.signal_strength = signal_strength
+        self.signal_strength_upper = signal_strength_upper
 
     def get_transforms(self):
         return torchvision.transforms.Compose([
@@ -70,17 +70,17 @@ class GORealisticNoiseDataset(Dataset):
         if np.random.random() < self.positive_rate:
             sig_files = choice(self.df_signal)
             label = 1
+        
+        signal_strength = np.random.uniform(0.02, self.signal_strength_upper)
+        img = np.concatenate([self.gen_sample(sig, noise, signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0)
 
-        img = np.concatenate([self.gen_sample(sig, noise, self.signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0)
+        # path = f'{PATH_TO_CACHE_FOLDER}/sample{index}_{label}.png'
+        # img -= np.min(img)
+        # img /= np.max(img)
+        # img *= 255
+        # cv2.imwrite(path, img[0])
 
-        path = f'{PATH_TO_CACHE_FOLDER}/sample{index}_{label}.png'
-        print_red(img[0].shape)
-        img -= np.min(img)
-        img /= np.max(img)
-        img *= 255
-        cv2.imwrite(path, img[0])
-
-        return img, label, self.signal_strength
+        return img, label, signal_strength
 
 
     def __len__(self):

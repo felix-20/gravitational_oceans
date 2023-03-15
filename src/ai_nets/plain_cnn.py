@@ -66,15 +66,15 @@ class GODenseMaxPoolModel(torch.nn.Module):
 class GOPlainCNNTrainer(GOTrainer):
 
     def __init__(self,
-                 epochs: int = 15,
+                 epochs: int = 17,
                  batch_size: int = 8,
-                 lr: float = 0.0029125088766753125,
+                 lr: float = 0.000139,
                  dropout: float = 0.1,
-                 max_grad_norm: float = 13.644276196745786,
-                 model: str = 'resnext50_32x4d',
+                 max_grad_norm: float = 7.639,
+                 model: str = 'inception_v4',
                  logging: bool = True,
                  dataset_class = GORealisticNoiseDataset,
-                 signal_strength: float = 1.0) -> None:
+                 signal_strength_upper: float = 0.17) -> None:
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -84,8 +84,7 @@ class GOPlainCNNTrainer(GOTrainer):
         self.model = model
         self.logging = logging
         self.dataset_class = dataset_class
-        self.signal_strength = signal_strength
-        self.input_shape = (360, 2000)
+        self.signal_strength_upper = signal_strength_upper
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'plain_cnn_{str(datetime.now())}'))
@@ -96,7 +95,7 @@ class GOPlainCNNTrainer(GOTrainer):
 
     def get_model(self):
         print_blue(self.model)
-        #return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
+        # return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
         return timm.create_model(self.model, num_classes=1, in_chans=2, pretrained=True, drop_rate=0.1).to(self.device)
     
     @torch.no_grad()
@@ -141,14 +140,14 @@ class GOPlainCNNTrainer(GOTrainer):
             len(signal_files_train),
             noise_files_train,
             signal_files_train,
-            signal_strength=self.signal_strength
+            signal_strength_upper=self.signal_strength_upper
         )
 
         dataset_eval = self.dataset_class(
             len(signal_files_eval),
             noise_files_eval,
             signal_files_eval,
-            signal_strength=self.signal_strength
+            signal_strength_upper=self.signal_strength_upper
         )
 
         dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=self.batch_size, drop_last=True)
@@ -163,7 +162,7 @@ class GOPlainCNNTrainer(GOTrainer):
             epoch_changed = True
             epoch_index = epoch
             print_green(f'Training Epoch {epoch}')
-            for step, (X, y, signal_strength) in enumerate(tqdm(dataloader_train, desc='Train', colour='#6ea62e')):
+            for step, (X, y, _) in enumerate(tqdm(dataloader_train, desc='Train', colour='#6ea62e')):
                 predictions = model(X.to(self.device)).squeeze()
                 loss = torch.nn.functional.binary_cross_entropy_with_logits(predictions, y.float().to(self.device))
 
@@ -194,10 +193,10 @@ class GOPlainCNNTrainer(GOTrainer):
 
 
 if __name__ == '__main__':
-    #file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strength_over_accuracy_with_dense_{datetime.now()}.csv')
+    # file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strength_over_accuracy_with_dense_{datetime.now()}.csv')
 
     GOPlainCNNTrainer(logging=True, 
-                    signal_strength=0.17, 
+                    signal_strength_upper=0.17, 
                     epochs=17, 
                     lr=0.000139, 
                     max_grad_norm=7.639,
