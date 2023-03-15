@@ -1,6 +1,7 @@
 from datetime import datetime
 from os import path
 
+import json
 import timm
 import torch
 import numpy as np
@@ -12,56 +13,12 @@ import cv2
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_SOURCE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue, print_green, print_red, print_yellow, normalize_image
+from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_CACHE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue, print_green, print_red, print_yellow, normalize_image
+from src.helper.crange import crange
 
 
 epoch_index = 0
 epoch_changed = True
-
-class GOHadamardLayer(torch.nn.Module):
-    def __init__(self, 
-                 in_features, 
-                 device, 
-                 path_to_weight_image=path.join(PATH_TO_SOURCE_FOLDER, 'ai_nets', 'pretrained_weights', 'signals_pretrained.png')):
-        super().__init__()
-
-        weight_data = cv2.imread(path_to_weight_image, cv2.IMREAD_GRAYSCALE) / 255.0
-        tensor = torch.tensor(weight_data, device=device, dtype=torch.float)
-        self.weight = torch.nn.Parameter(tensor)
-    
-    def forward(self, x):
-        return torch.mul(self.weight, x)
-
-
-class GODenseMaxPoolModel(torch.nn.Module):
-    def __init__(self, input_shape, batch_size, model, device):
-        super().__init__()
-        self.weighting = GOHadamardLayer(in_features=input_shape, device=device)
-        self.max_pool = torch.nn.MaxPool2d(kernel_size=7, stride=2, padding=0, dilation=3)
-        # torch.nn.Linear(in_features=np.prod(input_shape), out_features=np.prod(input_shape), device=device)
-        self.model = timm.create_model(model, num_classes=1, in_chans=2).to(device)
-
-        self.batch_size = batch_size
-        # self.input_shape = input_shape
-        self.height = input_shape[-1]
-        self.width = input_shape[-2]
-    
-    def forward(self, X): # shape (batch_size, detectors, height, width)
-        global epoch_index, epoch_changed
-        weighted = self.weighting(X)
-        
-        #linearized = pooled.reshape(self.batch_size, 2, -1)
-        #weighted = self.weighting(linearized)
-        #weighted = weighted.reshape(self.batch_size, 2, self.width, self.height)
-        pooled = self.max_pool(weighted)
-        
-        if epoch_changed:
-            epoch_changed = False
-            cv2.imwrite(f'./gravitational_oceans/tmp/weights_{epoch_index}.png', normalize_image(self.weighting.weight.cpu().detach().numpy()))
-            print_red('saved')
-        
-        return self.model(pooled)
-
 
 class GOPlainCNNTrainer(GOTrainer):
 
@@ -121,7 +78,7 @@ class GOPlainCNNTrainer(GOTrainer):
 
         return (correct / len(labels), loss, predictions, labels, signal_strengths)
 
-    def train(self):
+    def train(self, train_val_ratio=0.8):
         global epoch_index, epoch_changed
 
         noise_files = get_df_dynamic_noise()
@@ -130,29 +87,52 @@ class GOPlainCNNTrainer(GOTrainer):
         np.random.shuffle(noise_files)
         np.random.shuffle(signal_files)
 
-        noise_files_train = noise_files[:int(len(noise_files)*0.8)]
-        noise_files_eval = noise_files[int(len(noise_files)*0.8):]
+        eval_len_noise = (1 - train_val_ratio) * len(noise_files)
+        eval_len_signal = (1 - train_val_ratio) * len(signal_files)
 
-        signal_files_train = signal_files[:int(len(signal_files)*0.8)]
-        signal_files_eval = signal_files[int(len(signal_files)*0.8):]
+        all_max_accuracies = {}
+        all_accuracies = {}
 
-        dataset_train = self.dataset_class(
-            len(signal_files_train),
-            noise_files_train,
-            signal_files_train,
-            signal_strength_upper=self.signal_strength_upper
-        )
+        for c in int(1 / (1 - train_val_ratio)):
+            # prepare noise for doing cross validation
+            noise_files_train, noise_files_eval = self._split_train_eval(c, eval_len_noise, noise_files)
+            signal_files_train, signal_files_eval = self._split_train_eval(c, eval_len_signal, signal_files)
 
-        dataset_eval = self.dataset_class(
-            len(signal_files_eval),
-            noise_files_eval,
-            signal_files_eval,
-            signal_strength_upper=self.signal_strength_upper
-        )
+            dataset_train = self.dataset_class(
+                len(signal_files_train),
+                noise_files_train,
+                signal_files_train,
+                signal_strength_upper=self.signal_strength_upper
+            )
 
-        dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=self.batch_size, drop_last=True)
-        dataloader_eval = torch.utils.data.DataLoader(dataset_eval, batch_size=self.batch_size, drop_last=True)
+            dataset_eval = self.dataset_class(
+                len(signal_files_eval),
+                noise_files_eval,
+                signal_files_eval,
+                signal_strength_upper=self.signal_strength_upper
+            )
 
+            dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=self.batch_size, drop_last=True)
+            dataloader_eval = torch.utils.data.DataLoader(dataset_eval, batch_size=self.batch_size, drop_last=True)
+
+            max_acc, accs = self._train_loop(dataloader_train=dataloader_train, dataloader_eval=dataloader_eval)
+            all_max_accuracies[c] = max_acc
+            all_accuracies[c] = accs
+        return all_max_accuracies, all_accuracies
+
+    def _split_train_eval(self, cross_validation_index, num_eval_files, all_files):
+        start_index_eval = cross_validation_index * num_eval_files
+        end_index_eval = cross_validation_index * num_eval_files + num_eval_files
+        
+        train_indices = list(crange(end_index_eval, start_index_eval, len(all_files)))
+        files_train = np.array(all_files)[train_indices]
+
+        eval_indices = list(range(start_index_eval, end_index_eval))  # should work without %
+        files_eval = np.array(all_files)[eval_indices]
+
+        return files_train, files_eval
+
+    def _train_loop(self, dataloader_train, dataloader_eval):
         model = self.get_model()
         optim = torch.optim.Adam(model.parameters(), lr=self.lr)
 
@@ -188,19 +168,23 @@ class GOPlainCNNTrainer(GOTrainer):
                 self.writer.add_scalar(f'val/loss', loss, epoch)
                 self.writer.add_scalar(f'val/accuracy', accuracy, epoch)
                 self.writer.add_scalar(f'val/max_accuracy', max_accuracy, epoch)
-
+        
         return max_accuracy, accuracies
 
 
 if __name__ == '__main__':
-    # file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strength_over_accuracy_with_dense_{datetime.now()}.csv')
-
-    GOPlainCNNTrainer(logging=True, 
-                    signal_strength_upper=0.17, 
-                    epochs=17, 
-                    lr=0.000139, 
-                    max_grad_norm=7.639,
-                    model='inception_v4').train()
+    t = datetime.now()
+    for r in [0.7, 0.8, 0.9]:
+        max_accs, accs = GOPlainCNNTrainer(logging=True, 
+                        signal_strength_upper=0.17, 
+                        epochs=17, 
+                        lr=0.000139, 
+                        max_grad_norm=7.639,
+                        model='inception_v4').train(train_val_ratio=r)
+        file_path = path.join(PATH_TO_CACHE_FOLDER, f'ratio_{r}_{t}.json')
+        final_dict = {'max_accs': max_accs, 'accs': accs}
+        with open(file_path, 'w') as file:
+            file.write(final_dict, file)
 
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()
