@@ -17,9 +17,6 @@ from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_C
 from src.helper.crange import crange
 
 
-epoch_index = 0
-epoch_changed = True
-
 class GOPlainCNNTrainer(GOTrainer):
 
     def __init__(self,
@@ -31,7 +28,8 @@ class GOPlainCNNTrainer(GOTrainer):
                  model: str = 'inception_v4',
                  logging: bool = True,
                  dataset_class = GORealisticNoiseDataset,
-                 signal_strength_upper: float = 0.17) -> None:
+                 signal_strength_upper: float = 0.17,
+                 signal_strength_lower: float = 0.02) -> None:
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -42,6 +40,9 @@ class GOPlainCNNTrainer(GOTrainer):
         self.logging = logging
         self.dataset_class = dataset_class
         self.signal_strength_upper = signal_strength_upper
+        self.signal_strength_lower = signal_strength_lower
+        assert self.signal_strength_lower <= self.signal_strength_upper, \
+            f'Signal strength upper needs to be higher or equal to signal strength lower, upper is {self.signal_strength_upper}, lower is {self.signal_strength_lower}'
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'plain_cnn_{str(datetime.now())}'))
@@ -51,7 +52,6 @@ class GOPlainCNNTrainer(GOTrainer):
         print(f'Training on {self.device}')
 
     def get_model(self):
-        print_blue(self.model)
         # return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
         return timm.create_model(self.model, num_classes=1, in_chans=2, pretrained=True, drop_rate=0.1).to(self.device)
     
@@ -79,7 +79,8 @@ class GOPlainCNNTrainer(GOTrainer):
         return (correct / len(labels), loss, predictions, labels, signal_strengths)
 
     def train(self, cross_validation_enabled: bool = False, train_val_ratio: float = 0.8):
-        global epoch_index, epoch_changed
+        print_blue(f'Start training for {self.epochs} epochs with model {self.model}, cross validation enabled: {cross_validation_enabled}')
+        print_blue(f'Using {train_val_ratio} of total files for training with batch size {self.batch_size}')
 
         noise_files = get_df_dynamic_noise()
         signal_files = get_df_signal()
@@ -103,14 +104,16 @@ class GOPlainCNNTrainer(GOTrainer):
                 len(signal_files_train),
                 noise_files_train,
                 signal_files_train,
-                signal_strength_upper=self.signal_strength_upper
+                signal_strength_upper=self.signal_strength_upper,
+                signal_strength_lower=self.signal_strength_lower
             )
 
             dataset_eval = self.dataset_class(
                 len(signal_files_eval),
                 noise_files_eval,
                 signal_files_eval,
-                signal_strength_upper=self.signal_strength_upper
+                signal_strength_upper=self.signal_strength_upper,
+                signal_strength_lower=self.signal_strength_lower
             )
 
             dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=self.batch_size, drop_last=True)
@@ -140,8 +143,6 @@ class GOPlainCNNTrainer(GOTrainer):
         max_accuracy = 0
         accuracies = []
         for epoch in range(self.epochs):
-            epoch_changed = True
-            epoch_index = epoch
             print_green(f'Training Epoch {epoch}')
             for step, (X, y, _) in enumerate(tqdm(dataloader_train, desc='Train', colour='#6ea62e')):
                 predictions = model(X.to(self.device)).squeeze()
@@ -178,25 +179,38 @@ def ratio_experiments():
     for r in [0.7, 0.8, 0.9]:
         max_accs, accs = GOPlainCNNTrainer(logging=True, 
                         signal_strength_upper=0.17, 
-                        epochs=1, 
+                        epochs=17, 
                         lr=0.000139, 
                         max_grad_norm=7.639,
-                        model='inception_v4').train(train_val_ratio=r, cross_validation_enabled=False)
+                        model='inception_v4').train(train_val_ratio=r, cross_validation_enabled=True)
         file_path = path.join(PATH_TO_CACHE_FOLDER, f'ratio_{r}_{t}.json')
         final_dict = {'max_accs': max_accs, 'accs': accs}
-        print(max_accs)
-        print(accs)
         print_green(f'Writing to file {file_path}')
         with open(file_path, 'w') as file:
             json.dump(final_dict, file)
 
 
 def signal_strength_experiments():
-    pass
+    file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strengths_{datetime.now().strftime("%Y-%m-%d-%H-%M")}.json')
+    for f in np.linspace(0.00001, 0.17, 10):
+        max_accuracy_dict, accuracies_dict = GOPlainCNNTrainer(logging=True, 
+                        signal_strength_upper=f,
+                        signal_strength_lower=f ,
+                        epochs=1, 
+                        lr=0.000139, 
+                        max_grad_norm=7.639,
+                        model='inception_v4').train(cross_validation_enabled=False)
+        print_red(max_accuracy_dict)
+        print_red(accuracies_dict)
+        max_accuracy = max_accuracy_dict[0]
+        accuracies = accuracies_dict[0]
+        print_green(f'Writing to file {file_path}')
+        with open(file_path, 'a') as file:
+            file.write(f'{f},{max_accuracy},{",".join([str(x) for x in accuracies])}\n')
 
 if __name__ == '__main__':
-    ratio_experiments()
-
+    # ratio_experiments()
+    signal_strength_experiments()
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()
     #     with open(file_path, 'a') as file:
