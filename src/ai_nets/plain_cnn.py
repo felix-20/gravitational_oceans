@@ -78,7 +78,7 @@ class GOPlainCNNTrainer(GOTrainer):
 
         return (correct / len(labels), loss, predictions, labels, signal_strengths)
 
-    def train(self, train_val_ratio=0.8):
+    def train(self, cross_validation_enabled: bool = False, train_val_ratio: float = 0.8):
         global epoch_index, epoch_changed
 
         noise_files = get_df_dynamic_noise()
@@ -89,11 +89,12 @@ class GOPlainCNNTrainer(GOTrainer):
 
         eval_len_noise = (1 - train_val_ratio) * len(noise_files)
         eval_len_signal = (1 - train_val_ratio) * len(signal_files)
+        num_training_loops = int(1 / (1 - train_val_ratio)) if cross_validation_enabled else 1
 
         all_max_accuracies = {}
         all_accuracies = {}
-
-        for c in int(1 / (1 - train_val_ratio)):
+        for c in range(num_training_loops):
+            print_blue(f'Training loop {c}')
             # prepare noise for doing cross validation
             noise_files_train, noise_files_eval = self._split_train_eval(c, eval_len_noise, noise_files)
             signal_files_train, signal_files_eval = self._split_train_eval(c, eval_len_signal, signal_files)
@@ -116,13 +117,13 @@ class GOPlainCNNTrainer(GOTrainer):
             dataloader_eval = torch.utils.data.DataLoader(dataset_eval, batch_size=self.batch_size, drop_last=True)
 
             max_acc, accs = self._train_loop(dataloader_train=dataloader_train, dataloader_eval=dataloader_eval)
-            all_max_accuracies[c] = max_acc
-            all_accuracies[c] = accs
+            all_max_accuracies[c] = max_acc.item()
+            all_accuracies[c] = [a.item() for a in accs]
         return all_max_accuracies, all_accuracies
 
     def _split_train_eval(self, cross_validation_index, num_eval_files, all_files):
-        start_index_eval = cross_validation_index * num_eval_files
-        end_index_eval = cross_validation_index * num_eval_files + num_eval_files
+        start_index_eval = int(cross_validation_index * num_eval_files)
+        end_index_eval = int(cross_validation_index * num_eval_files + num_eval_files)
         
         train_indices = list(crange(end_index_eval, start_index_eval, len(all_files)))
         files_train = np.array(all_files)[train_indices]
@@ -172,19 +173,29 @@ class GOPlainCNNTrainer(GOTrainer):
         return max_accuracy, accuracies
 
 
-if __name__ == '__main__':
-    t = datetime.now()
+def ratio_experiments():
+    t = datetime.now().strftime('%Y-%m-%d-%H-%M')
     for r in [0.7, 0.8, 0.9]:
         max_accs, accs = GOPlainCNNTrainer(logging=True, 
                         signal_strength_upper=0.17, 
-                        epochs=17, 
+                        epochs=1, 
                         lr=0.000139, 
                         max_grad_norm=7.639,
-                        model='inception_v4').train(train_val_ratio=r)
+                        model='inception_v4').train(train_val_ratio=r, cross_validation_enabled=False)
         file_path = path.join(PATH_TO_CACHE_FOLDER, f'ratio_{r}_{t}.json')
         final_dict = {'max_accs': max_accs, 'accs': accs}
+        print(max_accs)
+        print(accs)
+        print_green(f'Writing to file {file_path}')
         with open(file_path, 'w') as file:
-            file.write(final_dict, file)
+            json.dump(final_dict, file)
+
+
+def signal_strength_experiments():
+    pass
+
+if __name__ == '__main__':
+    ratio_experiments()
 
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()
