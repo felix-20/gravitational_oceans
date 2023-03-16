@@ -6,8 +6,8 @@ from os import path
 from src.helper.utils import PATH_TO_CACHE_FOLDER
 
 if __name__ == '__main__':
-    input_path = path.join(PATH_TO_CACHE_FOLDER, 'signal_strength_over_accuracy.csv')
-    output_path = path.join(PATH_TO_CACHE_FOLDER, 'signal_strength_over_accuracy.png')
+    input_path = path.join(PATH_TO_CACHE_FOLDER, 'signal_strength_results', 'signal_strength_over_accuracy_small.csv')
+    output_path = path.join(PATH_TO_CACHE_FOLDER, 'signal_strength_results', 'signal_strength_over_accuracy_small.png')
 
     lines = sum(1 for _ in open(input_path))
 
