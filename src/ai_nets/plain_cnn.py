@@ -21,7 +21,7 @@ class GOPlainCNNTrainer(GOTrainer):
 
     def __init__(self,
                  epochs: int = 17,
-                 batch_size: int = 8,
+                 batch_size: int = 64,
                  lr: float = 0.000139,
                  dropout: float = 0.1,
                  max_grad_norm: float = 7.639,
@@ -142,6 +142,7 @@ class GOPlainCNNTrainer(GOTrainer):
 
         max_accuracy = 0
         accuracies = []
+        t = datetime.now().strftime('%Y-%m-%d-%H-%M')
         for epoch in range(self.epochs):
             print_green(f'Training Epoch {epoch}')
             for step, (X, y, _) in enumerate(tqdm(dataloader_train, desc='Train', colour='#6ea62e')):
@@ -163,7 +164,7 @@ class GOPlainCNNTrainer(GOTrainer):
             print_blue('accuracy:', accuracy)
 
             if accuracy > max_accuracy:
-                torch.save(model.state_dict(), f'{PATH_TO_MODEL_FOLDER}/plain_model.pth')
+                torch.save(model.state_dict(), f'{PATH_TO_MODEL_FOLDER}/plain_model_{t}.pth')
                 max_accuracy = accuracy
 
             if self.logging:
@@ -210,7 +211,10 @@ def signal_strength_experiments():
 
 if __name__ == '__main__':
     # ratio_experiments()
-    signal_strength_experiments()
+    #signal_strength_experiments()
+
+    GOPlainCNNTrainer(logging=True, signal_strength_upper=0.02, signal_strength_lower=0.001).train()
+
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()
     #     with open(file_path, 'a') as file:
