@@ -26,7 +26,7 @@ class GOStatistics:
 
         if 'noise' in statistic_dict:
             self.noise = GONoise(statistic_dict['noise'])
-        
+
         if 'frequencies' in statistic_dict:
             self.frequencies = GOFrequencies(statistic_dict['frequencies'])
 

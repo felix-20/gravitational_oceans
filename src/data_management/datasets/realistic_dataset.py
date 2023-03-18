@@ -1,6 +1,7 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
 import os
+from secrets import choice
 
 import cv2
 import numpy as np
@@ -10,9 +11,8 @@ import torchvision
 from PIL import Image
 from sklearn.metrics import *
 from torch.utils.data import Dataset
-from secrets import choice
 
-from src.helper.utils import get_df_dynamic_noise, get_df_signal, print_red, print_yellow, print_green, PATH_TO_CACHE_FOLDER
+from src.helper.utils import PATH_TO_CACHE_FOLDER, get_df_dynamic_noise, get_df_signal, print_green, print_red, print_yellow
 
 
 class GORealisticNoiseDataset(Dataset):
@@ -44,7 +44,7 @@ class GORealisticNoiseDataset(Dataset):
     def vladifier(self, float_image, factor):
         float_image = float_image[:, :4096]
         img = float_image.reshape(360, 256, -1).mean(axis=2)
-        
+
         return np.clip(img * 255 * factor, 0, 255).astype(np.uint8)
 
     def gen_sample(self, signal_file, noise_file, signal_strength):
@@ -72,7 +72,7 @@ class GORealisticNoiseDataset(Dataset):
         if np.random.random() < self.positive_rate:
             sig_files = choice(self.df_signal)
             label = 1
-        
+
         signal_strength = np.random.uniform(self.signal_strength_lower, self.signal_strength_upper)
         img = np.concatenate([self.gen_sample(sig, noise, signal_strength) for sig, noise in zip(sig_files, noise_files)], axis=0)
 

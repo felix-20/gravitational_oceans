@@ -3,10 +3,10 @@
 
 import os
 import shutil
+from concurrent.futures import ProcessPoolExecutor
 
 import h5py
 import pyfstat
-from concurrent.futures import ProcessPoolExecutor
 
 from src.data_management.analyse_file import plot_real_imag_spectrograms
 from src.helper.utils import PATH_TO_TRAIN_FOLDER, print_blue, print_green, print_red
@@ -129,8 +129,8 @@ class GODataGenerator:
 
 def generate_signals(id) -> None:
     GODataGenerator()._generate_one_signal(id)
-    
-        
+
+
 
 if __name__ == '__main__':
     with ProcessPoolExecutor() as p:

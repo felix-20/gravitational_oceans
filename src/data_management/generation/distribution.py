@@ -67,7 +67,7 @@ class GODistributionFactory:
 
     def _parse_exponential(parameter_dict: dict):
         return GOExponentialDistribution(parameter_dict)
-    
+
     def _parse_gamma(parameter_dict: dict):
         return GOGammaDistribution(parameter_dict)
 

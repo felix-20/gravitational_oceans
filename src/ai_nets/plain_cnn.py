@@ -1,20 +1,20 @@
+import json
 from datetime import datetime
 from os import path
 
-import json
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 import timm
 import torch
-import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-from datetime import datetime
-import cv2
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_CACHE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue, print_green, print_red, print_yellow, normalize_image
 from src.helper.crange import crange
+from src.helper.utils import (PATH_TO_CACHE_FOLDER, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, get_df_dynamic_noise, get_df_signal,
+                              normalize_image, print_blue, print_green, print_red, print_yellow)
 
 
 class GOPlainCNNTrainer(GOTrainer):
@@ -54,7 +54,7 @@ class GOPlainCNNTrainer(GOTrainer):
     def get_model(self):
         # return GODenseMaxPoolModel((35, 199), self.batch_size, self.model, self.device)
         return timm.create_model(self.model, num_classes=1, in_chans=2, pretrained=True, drop_rate=0.1).to(self.device)
-    
+
     @torch.no_grad()
     def evaluate(self, model, dl_eval):
         model.eval()
@@ -70,7 +70,7 @@ class GOPlainCNNTrainer(GOTrainer):
 
         labels = torch.concat(labels)
         predictions = torch.concat(predictions)
-        
+
         loss = torch.nn.functional.binary_cross_entropy_with_logits(predictions, labels.float(), reduction='none').median().item()
 
         integer_predictions = torch.round(torch.sigmoid(predictions))
@@ -127,7 +127,7 @@ class GOPlainCNNTrainer(GOTrainer):
     def _split_train_eval(self, cross_validation_index, num_eval_files, all_files):
         start_index_eval = int(cross_validation_index * num_eval_files)
         end_index_eval = int(cross_validation_index * num_eval_files + num_eval_files)
-        
+
         train_indices = list(crange(end_index_eval, start_index_eval, len(all_files)))
         files_train = np.array(all_files)[train_indices]
 
@@ -170,17 +170,17 @@ class GOPlainCNNTrainer(GOTrainer):
                 self.writer.add_scalar(f'val/loss', loss, epoch)
                 self.writer.add_scalar(f'val/accuracy', accuracy, epoch)
                 self.writer.add_scalar(f'val/max_accuracy', max_accuracy, epoch)
-        
+
         return max_accuracy, accuracies
 
 
 def ratio_experiments():
     t = datetime.now().strftime('%Y-%m-%d-%H-%M')
     for r in [0.7, 0.8, 0.9]:
-        max_accs, accs = GOPlainCNNTrainer(logging=True, 
-                        signal_strength_upper=0.17, 
-                        epochs=17, 
-                        lr=0.000139, 
+        max_accs, accs = GOPlainCNNTrainer(logging=True,
+                        signal_strength_upper=0.17,
+                        epochs=17,
+                        lr=0.000139,
                         max_grad_norm=7.639,
                         model='inception_v4').train(train_val_ratio=r, cross_validation_enabled=True)
         file_path = path.join(PATH_TO_CACHE_FOLDER, f'ratio_{r}_{t}.json')
@@ -193,11 +193,11 @@ def ratio_experiments():
 def signal_strength_experiments():
     file_path = path.join(PATH_TO_CACHE_FOLDER, f'signal_strengths_{datetime.now().strftime("%Y-%m-%d-%H-%M")}.json')
     for f in np.linspace(0.00001, 0.17, 10):
-        max_accuracy_dict, accuracies_dict = GOPlainCNNTrainer(logging=True, 
+        max_accuracy_dict, accuracies_dict = GOPlainCNNTrainer(logging=True,
                         signal_strength_upper=f,
                         signal_strength_lower=f ,
-                        epochs=1, 
-                        lr=0.000139, 
+                        epochs=1,
+                        lr=0.000139,
                         max_grad_norm=7.639,
                         model='inception_v4').train(cross_validation_enabled=False)
         print_red(max_accuracy_dict)

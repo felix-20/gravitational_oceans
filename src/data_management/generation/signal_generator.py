@@ -1,3 +1,5 @@
+# disable info logs
+import logging
 import math
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -15,8 +17,6 @@ from tqdm import tqdm
 from src.data_management.generation.timestamps_generator import GOTimestepGenerator
 from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_SIGNAL_FOLDER
 
-# disable info logs
-import logging
 logging.getLogger('pyfstat').setLevel(logging.CRITICAL)
 
 

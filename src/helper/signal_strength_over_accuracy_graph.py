@@ -1,7 +1,7 @@
-import numpy as np
-
-from matplotlib import pyplot as plt
 from os import path
+
+import numpy as np
+from matplotlib import pyplot as plt
 
 from src.helper.utils import PATH_TO_CACHE_FOLDER
 
@@ -13,10 +13,10 @@ if __name__ == '__main__':
 
     cmap = plt.get_cmap('viridis')
     colors = [cmap(i) for i in np.linspace(0, 1, lines)]
-    
+
     fig = plt.figure()
     ax = plt.subplot(111)
-    
+
     handles = []
     line_index = 0
     all_data = []
@@ -25,7 +25,7 @@ if __name__ == '__main__':
             data = line.split(',')
             data = [float(x) for x in data]
             all_data += [data]
-    
+
     all_data = sorted(all_data, key=lambda x: x[0])
 
     for line in all_data:
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         handle = ax.plot(range(epochs), accuracies, label=f'{signal_strength:.5f}', color=colors[line_index])
         handles += handle
         line_index += 1
-    
+
     # Shrink current axis by 20%
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])

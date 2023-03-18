@@ -1,21 +1,21 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
 from datetime import datetime
-from os import cpu_count, path, makedirs
+from os import cpu_count, makedirs, path
 
+import matplotlib.pyplot as plt
+import numpy as np
 import timm
 import torch
-import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, PATH_TO_CACHE_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue, print_green, print_red, print_yellow
+from src.helper.utils import (PATH_TO_CACHE_FOLDER, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, get_df_dynamic_noise, get_df_signal,
+                              print_blue, print_green, print_red, print_yellow)
 
 
 class GORealisticCNNTrainer(GOTrainer):

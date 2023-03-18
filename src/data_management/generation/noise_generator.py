@@ -1,12 +1,15 @@
-import numpy as np
 from concurrent.futures import ProcessPoolExecutor
-from tqdm import tqdm
 from os.path import join
-from src.data_management.generation.statistics import GOStaticNoise, GOStatistics
-from src.helper.utils import PATH_TO_STATIC_NOISE_FOLDER
 from secrets import token_hex
+
+import numpy as np
 from cv2 import imwrite
+from tqdm import tqdm
+
+from src.data_management.generation.statistics import GOStaticNoise, GOStatistics
 from src.data_management.generation.timestamps_generator import GOTimestepGenerator
+from src.helper.utils import PATH_TO_STATIC_NOISE_FOLDER
+
 
 class GOStaticNoiseGenerator:
     def __init__(self, timesteps: list, statistics: GOStaticNoise = GOStatistics().noise.static) -> None:

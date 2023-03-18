@@ -1,18 +1,19 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-realistic-simulation-of-test-noise
 
-import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 from os.path import join
 from secrets import token_hex
-from cv2 import imwrite
-from concurrent.futures import ThreadPoolExecutor
-from tqdm import tqdm
 from time import time
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import numpy as np
+from cv2 import imwrite
+from tqdm import tqdm
 
 from src.data_management.generation.statistics import GODynamicNoise, GOStatistics
-from src.helper.utils import PATH_TO_DYNAMIC_NOISE_FOLDER, PATH_TO_CACHE_FOLDER, print_red, print_blue, print_green, print_yellow
 from src.data_management.generation.timestamps_generator import GOTimestepGenerator
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_DYNAMIC_NOISE_FOLDER, print_blue, print_green, print_red, print_yellow
+
 
 class GODynamicNoiseGenerator:
     def __init__(self, timesteps: list, statistics: GOStatistics = GOStatistics(), bucket_count: int = 512) -> None:
@@ -27,7 +28,7 @@ class GODynamicNoiseGenerator:
         bucket_size = (self.timesteps[-1] - self.timesteps[0]) // self.bucket_count
         idx = np.searchsorted(self.timesteps, [self.timesteps[0] + bucket_size * i for i in range(self.bucket_count)])
         return list(idx) + [self.timestep_count]
-    
+
     def generate_noise(self):
         bucket_delimiter_indices = self.linear_time_buckets()
         single_bucket_sizes = np.ediff1d(bucket_delimiter_indices)
@@ -46,7 +47,7 @@ class GODynamicNoiseGenerator:
             buckets += [np.random.normal(bucket_mean_offset + bucket_mean, bucket_std, (360, single_bucket_sizes[i]))]
 
         return np.concatenate(buckets, axis=1)
-    
+
     def __call__(self, idx: int):
         token = token_hex(3)
         amp = self.generate_noise()
@@ -69,4 +70,3 @@ if __name__ == '__main__':
     # with ThreadPoolExecutor() as t:
     #     for _ in tqdm(t.map(generate_sample, range(samples))):
     #         pass
-    

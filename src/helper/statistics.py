@@ -1,10 +1,11 @@
-import h5py
 import os
+
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from src.helper.utils import PATH_TO_TRAIN_FOLDER, PATH_TO_CACHE_FOLDER
+from src.helper.utils import PATH_TO_CACHE_FOLDER, PATH_TO_TRAIN_FOLDER
 
 
 def open_hdf5_file(path_to_file: str):
@@ -41,8 +42,8 @@ def compute_noise_statistics(files):
         real_l1_std,\
         imag_l1_means,\
         imag_l1_std
-        
-        
+
+
     for file_path in tqdm(files):
         data = open_hdf5_file(file_path)
         real_amplitudes_h1 = np.real(data['h1']['amplitudes'])

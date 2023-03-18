@@ -1,11 +1,13 @@
-import cv2
+from os import getcwd, listdir, makedirs
+from os.path import basename, join
 from uuid import uuid4
-from os.path import join, basename
-from os import listdir, getcwd, makedirs
+
+import cv2
+
+from src.helper.utils import PATH_TO_DYNAMIC_NOISE_FOLDER, PATH_TO_SIGNAL_FOLDER
 
 # (360, 256, 3)
 
-from src.helper.utils import PATH_TO_DYNAMIC_NOISE_FOLDER, PATH_TO_SIGNAL_FOLDER
 
 PATH_TO_NEW_NOISE = join(getcwd(), '2', 'noise', 'dynamic')
 

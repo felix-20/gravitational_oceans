@@ -1,7 +1,7 @@
 import json
+from os import listdir, path
+
 import matplotlib.pyplot as plt
-from os import path
-from os import listdir
 import numpy as np
 
 from src.helper.utils import PATH_TO_CACHE_FOLDER
