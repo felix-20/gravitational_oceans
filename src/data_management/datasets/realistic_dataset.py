@@ -68,9 +68,6 @@ class GORealisticNoiseDataset(Dataset):
         first_index = non_zero_indices[0]
         last_index = non_zero_indices[-1]
 
-        signal[first_index, :] = 128
-        signal[last_index, :] = 255
-
         # up or down
         if np.random.random() > 0.5:
             offset = np.random.randint(0, first_index)

@@ -213,7 +213,12 @@ if __name__ == '__main__':
     # ratio_experiments()
     #signal_strength_experiments()
 
+    start = datetime.now()
+    print_green(start)
     GOPlainCNNTrainer(logging=True, signal_strength_upper=0.02, signal_strength_lower=0.001).train()
+    end = datetime.now()
+    print_green(start, end)
+    print_red(end-start)
 
     # for f in np.linspace(0.21, 0.17, 5):
     #     max_accuracy, accuracies = GOPlainCNNTrainer(logging=False, signal_strength=f).train()

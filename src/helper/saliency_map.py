@@ -69,7 +69,7 @@ def saliency(img, model):
 
 
 if __name__ == '__main__':
-    model_path = join(PATH_TO_MODEL_FOLDER, 'plain_model.pth')
+    model_path = join(PATH_TO_MODEL_FOLDER, 'plain_model_2023-03-19-20-47.pth')
     model_type = 'inception_v4'
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
