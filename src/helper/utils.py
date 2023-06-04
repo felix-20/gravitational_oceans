@@ -1,10 +1,7 @@
-import glob
 import os
-import re
 
 import h5py
 import numpy as np
-import pandas as pd
 
 
 class bcolors:
@@ -31,6 +28,7 @@ if 'KAGGLE_BASE_URL' in os.environ:
     PATH_TO_NOISE_FOLDER = os.path.join('/kaggle', 'working', 'noise')
     PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
     PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
+    PATH_TO_SOURCE_FOLDER = os.path.join('/kaggle', 'working', 'src')
 else:
     PATH_TO_TEST_FOLDER = os.path.join(os.getcwd(), 'test_data')
     PATH_TO_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train_data')
@@ -42,6 +40,8 @@ else:
     PATH_TO_NOISE_FOLDER = os.path.join(os.getcwd(), 'noise')
     PATH_TO_DYNAMIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'dynamic')
     PATH_TO_STATIC_NOISE_FOLDER = os.path.join(PATH_TO_NOISE_FOLDER, 'static')
+    PATH_TO_TMP_FOLDER = os.path.join(os.getcwd(), 'tmp')
+    PATH_TO_SOURCE_FOLDER = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
 # setup
 if not os.path.isdir(PATH_TO_TRAIN_FOLDER):
@@ -62,11 +62,14 @@ if not os.path.isdir(PATH_TO_DYNAMIC_NOISE_FOLDER):
     os.makedirs(PATH_TO_DYNAMIC_NOISE_FOLDER)
 if not os.path.isdir(PATH_TO_STATIC_NOISE_FOLDER):
     os.makedirs(PATH_TO_STATIC_NOISE_FOLDER)
+if not os.path.isdir(PATH_TO_TMP_FOLDER):
+    os.makedirs(PATH_TO_TMP_FOLDER)
 
 if 'IS_CHARLIE' in os.environ:
     print('We are on Charlie')
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:2000"
 
 
 def print_red(*text):
@@ -101,25 +104,29 @@ def open_hdf5_file(path_to_file):
     return result
 
 
-def get_df_dynamic_noise() -> pd.DataFrame:
+def get_df_dynamic_noise():
     assert len(os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)) != 0, 'There must be data in noise folder'
-    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/([^/]*)/([^/]*).png', f)[0]) for f in glob.glob(f'{PATH_TO_DYNAMIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
-    df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
-    return df_noise
+    return [os.path.join(PATH_TO_DYNAMIC_NOISE_FOLDER, p) for p in os.listdir(PATH_TO_DYNAMIC_NOISE_FOLDER)]
 
 
-def get_df_static_noise() -> pd.DataFrame:
+def get_df_static_noise():
     assert len(os.listdir(PATH_TO_STATIC_NOISE_FOLDER)) != 0, 'There must be data in static_noise folder'
-    df_noise = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_STATIC_NOISE_FOLDER}/*/*.png')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
-    df_noise = df_noise.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
-    return df_noise
+    return [os.path.join(PATH_TO_STATIC_NOISE_FOLDER, p) for p in os.listdir(PATH_TO_STATIC_NOISE_FOLDER)]
 
 
-def get_df_signal() -> pd.DataFrame:
+def get_df_signal():
     assert len(os.listdir(PATH_TO_SIGNAL_FOLDER)) != 0, 'There must be data in signal folder'
-    df_signal = pd.DataFrame(data=[[f] + list(re.findall('.*/(.*)_(.*).png', f)[0]) for f in glob.glob(f'{PATH_TO_SIGNAL_FOLDER}/*')], columns=['name', 'id', 'detector']).sort_values(['id', 'detector'])
-    df_signal = df_signal.groupby('id').filter(lambda df: len(df) == 2).groupby('id', sort=False).apply(lambda df: df['name'].values).to_frame('files').reset_index()
-    return df_signal
+    all_files = [os.path.join(PATH_TO_SIGNAL_FOLDER, p) for p in os.listdir(PATH_TO_SIGNAL_FOLDER)]
+    all_files = sorted(all_files)
+    offset = len(all_files) // 2
+    return [(all_files[i], all_files[i+offset]) for i in range(offset)]
+
+
+def normalize_image(img):
+    img += abs(np.min(img))
+    img /= np.max(img)
+    img *= 255
+    return img
 
 
 if __name__ == '__main__':

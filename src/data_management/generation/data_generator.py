@@ -1,7 +1,9 @@
 # https://www.kaggle.com/code/rodrigotenorio/generating-continuous-gravitational-wave-signals
+# This is the first approach to generating training data inspired by the link above
 
 import os
 import shutil
+from concurrent.futures import ProcessPoolExecutor
 
 import h5py
 import pyfstat
@@ -72,18 +74,6 @@ class GODataGenerator:
             },
         )
 
-    def generate_signals(self, num_signals: int = 5) -> None:
-        """
-        Generates `num_signal` signals. Both with and without gravitational waves.
-
-        Args:
-            num_signals (int, optional): number of signals that should be produced. Defaults to 5.
-        """
-        for i in range(num_signals):
-            print_red('######### SIGNAL NOISE #########')
-            self._generate_one_signal(i)
-            print_green('######### SIGNAL WAVE #########')
-            self._generate_one_signal(i, True)
 
     def _generate_one_signal(self, id: int, should_contain_cw: bool = False) -> None:
         params = {}
@@ -95,7 +85,7 @@ class GODataGenerator:
             writer_kwargs = self.writer_kwargs_no_cw
 
         # define the folder to write to
-        writer_kwargs['outdir'] = f'{PATH_TO_TRAIN_FOLDER}/generated/'
+        writer_kwargs['outdir'] = f'{PATH_TO_TRAIN_FOLDER}/generated/{id}'
         writer_kwargs['label'] = f'tmp_signal'
         writer = pyfstat.Writer(**writer_kwargs, **params)
         writer.make_data()
@@ -106,7 +96,7 @@ class GODataGenerator:
         )
 
         # delete temporary files
-        shutil.rmtree(f'{PATH_TO_TRAIN_FOLDER}/generated/')
+        shutil.rmtree(f'{PATH_TO_TRAIN_FOLDER}/generated/{id}')
 
         path_to_hdf5_files = f'{PATH_TO_TRAIN_FOLDER}/cw_hdf5/' if should_contain_cw else f'{PATH_TO_TRAIN_FOLDER}/no_cw_hdf5/'
         if not os.path.isdir(path_to_hdf5_files):
@@ -136,5 +126,13 @@ class GODataGenerator:
                 plot_real_imag_spectrograms(timestamps['H1'], frequency_band, amplitudes_h1_band, f'{file_name}_{with_cw}_h1')
                 plot_real_imag_spectrograms(timestamps['L1'], frequency_band, amplitudes_l1_band, f'{file_name}_{with_cw}_l1')
 
+
+def generate_signals(id) -> None:
+    GODataGenerator()._generate_one_signal(id)
+
+
+
 if __name__ == '__main__':
-    GODataGenerator().generate_signals(15)
+    with ProcessPoolExecutor() as p:
+        for _ in p.map(generate_signals, range(100)):
+            pass

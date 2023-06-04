@@ -14,3 +14,4 @@ tensorboard
 timm
 pandas
 optuna
+opencv-python

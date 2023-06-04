@@ -277,7 +277,7 @@ class GOTransformerTrainer:
                     correct_complete = 0
                     correct_start = 0
                     for j in range(sequence_length):
-                        
+
                         if not sequence[j] in (0, 1):
                             sequence[j] = 0.5
 

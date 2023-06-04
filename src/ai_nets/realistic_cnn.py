@@ -1,8 +1,10 @@
 # https://www.kaggle.com/code/vslaykovsky/g2net-pytorch-generated-realistic-noise/notebook?scriptVersionId=113484252
 
 from datetime import datetime
-from os import cpu_count, path
+from os import cpu_count, makedirs, path
 
+import matplotlib.pyplot as plt
+import numpy as np
 import timm
 import torch
 from sklearn.metrics import roc_auc_score
@@ -12,7 +14,8 @@ from tqdm import tqdm
 
 from src.ai_nets.trainer import GOTrainer
 from src.data_management.datasets.realistic_dataset import GORealisticNoiseDataset
-from src.helper.utils import PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, get_df_dynamic_noise, get_df_signal, print_blue
+from src.helper.utils import (PATH_TO_CACHE_FOLDER, PATH_TO_LOG_FOLDER, PATH_TO_MODEL_FOLDER, get_df_dynamic_noise, get_df_signal,
+                              print_blue, print_green, print_red, print_yellow)
 
 
 class GORealisticCNNTrainer(GOTrainer):
@@ -59,7 +62,8 @@ class GORealisticCNNTrainer(GOTrainer):
                  model: str = 'efficientnetv2_rw_s',
                  gaussian_noise: float = 0.0,
                  logging: bool = True,
-                 dataset_class = GORealisticNoiseDataset) -> None:
+                 dataset_class = GORealisticNoiseDataset,
+                 signal_strength: float = 1.0) -> None:
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -75,6 +79,7 @@ class GORealisticCNNTrainer(GOTrainer):
         self.gaussian_noise = gaussian_noise
         self.logging = logging
         self.dataset_class = dataset_class
+        self.signal_strength = signal_strength
 
         if logging:
             self.writer = SummaryWriter(path.join(PATH_TO_LOG_FOLDER, 'runs', f'best_static_realistic_cnn_{str(datetime.now())}'))
@@ -135,10 +140,10 @@ class GORealisticCNNTrainer(GOTrainer):
                         scheduler.step()
 
                     if self.logging:
-                        self.writer.add_scalar(f'loss/epoch_{epoch}', loss.item(), step)
-                        self.writer.add_scalar(f'lr/epoch_{epoch}', scheduler.get_last_lr()[0] if scheduler else self.lr, step)
-                        self.writer.add_scalar(f'grad_norm/epoch_{epoch}', norm, step)
-                        self.writer.add_scalar(f'logit/epoch_{epoch}', pred.mean().item(), step)
+                        self.writer.add_scalar(f'fold_{fold}_loss/epoch_{epoch}', loss.item(), step)
+                        self.writer.add_scalar(f'fold_{fold}_lr/epoch_{epoch}', scheduler.get_last_lr()[0] if scheduler else self.lr, step)
+                        self.writer.add_scalar(f'fold_{fold}_grad_norm/epoch_{epoch}', norm, step)
+                        self.writer.add_scalar(f'fold_{fold}_logit/epoch_{epoch}', pred.mean().item(), step)
 
                 auc, loss = self.evaluate(model, dl_eval)[:2]
                 if auc > max_auc:
@@ -146,9 +151,9 @@ class GORealisticCNNTrainer(GOTrainer):
                     max_auc = auc
 
                 if self.logging:
-                    self.writer.add_scalar('val/loss', loss, epoch)
-                    self.writer.add_scalar('val/auc', auc, epoch)
-                    self.writer.add_scalar('val/max_auc', max_auc, epoch)
+                    self.writer.add_scalar(f'fold_{fold}_val/loss', loss, epoch)
+                    self.writer.add_scalar(f'fold_{fold}_val/auc', auc, epoch)
+                    self.writer.add_scalar(f'fold_{fold}_val/max_auc', max_auc, epoch)
 
                 if epoch > 5:
                     result_max = max(result_max, max_auc)
@@ -160,34 +165,36 @@ class GORealisticCNNTrainer(GOTrainer):
         df_noise_train, df_noise_eval = None, None
         for f, (train_idx, eval_idx) in enumerate(kfold.split(self.df_noise)):
             if f == fold:
-                df_noise_train = self.df_noise.loc[train_idx]
-                df_noise_eval = self.df_noise.loc[eval_idx]
+                df_noise_train = [self.df_noise[i] for i in train_idx]
+                df_noise_eval = [self.df_noise[i] for i in eval_idx]
 
         df_signal_train, df_signal_eval = None, None
         for f, (train_idx, eval_idx) in enumerate(kfold.split(self.df_signal)):
             if f == fold:
-                df_signal_train = self.df_signal.loc[train_idx]
-                df_signal_eval = self.df_signal.loc[eval_idx]
+                df_signal_train = [self.df_signal[i] for i in train_idx]
+                df_signal_eval = [self.df_signal[i] for i in eval_idx]
 
         ds_train = self.dataset_class(
             len(df_signal_train),
             df_noise_train,
             df_signal_train,
             is_train=True,
-            gaussian_noise=self.gaussian_noise
+            gaussian_noise=self.gaussian_noise,
+            signal_strength=self.signal_strength
         )
 
         ds_eval = self.dataset_class(
             len(df_signal_eval),
             df_noise_eval,
             df_signal_eval,
-            gaussian_noise=self.gaussian_noise
+            gaussian_noise=self.gaussian_noise,
+            signal_strength=self.signal_strength
         )
 
-        dl_train = torch.utils.data.DataLoader(ds_train, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
-        dl_eval = torch.utils.data.DataLoader(ds_eval, batch_size=self.batch_size, num_workers=cpu_count(), pin_memory=True)
+        dl_train = torch.utils.data.DataLoader(ds_train, batch_size=self.batch_size, num_workers=0, pin_memory=True)
+        dl_eval = torch.utils.data.DataLoader(ds_eval, batch_size=self.batch_size, num_workers=0, pin_memory=True)
         return dl_train, dl_eval
 
 
 if __name__ == '__main__':
-    GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal()).train()
+    GORealisticCNNTrainer(get_df_dynamic_noise(), get_df_signal(), folds=2, logging=True).train()
